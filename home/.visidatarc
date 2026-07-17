@@ -1,0 +1,3 @@
+options.clipboard_copy_cmd = 'tmux load-buffer -w -'
+#tmux-paste is a shell-script in the PATH
+options.clipboard_paste_cmd = 'tmux-paste'

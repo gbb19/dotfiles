@@ -1,0 +1,7 @@
+.vscode
+.zed
+.nvim.lua
+.infisical.json
+.antigravitycli
+.agents
+graphql.config.json
