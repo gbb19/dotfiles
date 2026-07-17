@@ -1,4 +1,4 @@
-# gbbyte-dotfiles
+# dotfiles
 
 Modular configuration files for Zsh, Neovim, Tmux, Kitty, VS Code, Zed, and more.
 

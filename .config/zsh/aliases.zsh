@@ -13,5 +13,5 @@ dev-exec() {
 }
 alias dev-up='devcontainer up \
   --workspace-folder . \
-  --dotfiles-repository https://github.com/gbb19/gbbyte-dotfiles.git \
+  --dotfiles-repository https://github.com/gbb19/dotfiles.git \
   --dotfiles-install-command setup/setup_devcontainer.sh'
