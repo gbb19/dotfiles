@@ -1,0 +1,158 @@
+{
+  "minimap": {
+    "show": "never"
+  },
+  "calls": {
+    "mute_on_join": true
+  },
+  "tab_size": 2,
+  "semantic_tokens": "combined",
+  "vim_mode": true,
+  "show_edit_predictions": false,
+  "inlay_hints": {
+    "enabled": true,
+    "show_type_hints": true,
+    "show_parameter_hints": true,
+    "show_other_hints": true,
+    "show_background": true,
+    "edit_debounce_ms": 700,
+    "scroll_debounce_ms": 50,
+    "toggle_on_modifiers_press": {
+      "control": true,
+      "shift": true,
+      "alt": true,
+      "platform": true,
+      "function": true
+    }
+  },
+  "diagnostics": {
+    "include_warnings": true,
+    "inline": {
+      "enabled": true,
+      "update_debounce_ms": 150,
+      "padding": 4,
+      "min_column": 0,
+      "max_severity": null
+    }
+  },
+  "buffer_font_family": "Ioskeley Mono",
+  "buffer_font_size": 15,
+  "ui_font_size": 15,
+  "theme": {
+    "mode": "system",
+    "light": "One Light",
+    "dark": "One Dark"
+  },
+  "theme_overrides": {
+    "One Dark": {
+      "hint": "#747474",
+      "players": [
+        {
+          "cursor": "#c4c4c4"
+        }
+      ],
+      "elevated_surface.background": "#262A31FF",
+      "surface.background": "#262A31FF",
+      "background": "#20242AFF",
+      "element.background": "#20242AFF",
+      "status_bar.background": "#20242AFF",
+      "title_bar.background": "#20242AFF",
+      "title_bar.inactive_background": "#20242AFF",
+      "toolbar.background": "#20242AFF",
+      "tab_bar.background": "#262A31FF",
+      "tab.inactive_background": "#262A31FF",
+      "tab.active_background": "#20242AFF",
+      "panel.background": "#262A31FF",
+      "editor.background": "#20242AFF",
+      "editor.gutter.background": "#20242AFF",
+      "editor.subheader.background": "#262A31FF",
+      "editor.active_line.background": "#2B303AFF",
+      "editor.highlighted_line.background": "#2B303AFF",
+      "terminal.background": "#20242AFF",
+      "ignored": "#858B98FF",
+      "ignored.background": "#858B981A",
+      "ignored.border": "#363C47FF"
+    }
+  },
+  "project_panel": {
+    "dock": "left",
+    "default_width": 320
+  },
+  "git_panel": {
+    "dock": "left",
+    "default_width": 320
+  },
+  "outline_panel": {
+    "dock": "left",
+    "default_width": 320
+  },
+  "collaboration_panel": {
+    "dock": "left",
+    "default_width": 320
+  },
+  "show_completions_on_input": false,
+  "lsp": {
+    "vtsls": {
+      "settings": {
+        "typescript": {
+          "updateImportsOnFileMove": {
+            "enabled": "always"
+          }
+        },
+        "javascript": {
+          "updateImportsOnFileMove": {
+            "enabled": "always"
+          }
+        }
+      },
+      "enable_lsp_tasks": true
+    },
+    "golangci-lint": {
+      "initialization_options": {
+        "command": [
+          "golangci-lint",
+          "run",
+          "--output.json.path",
+          "stdout",
+          "--show-stats=false",
+          "--output.text.path="
+        ]
+      }
+    },
+    "rust-analyzer": {
+      "initialization_options": {
+        "check": {
+          "command": "clippy",
+          "extraArgs": [
+            "--",
+            "-W",
+            "clippy::pedantic"
+          ]
+        },
+        "cargo": {
+          "allFeatures": true
+        },
+        "inlayHints": {
+          "maxLength": null,
+          "lifetimeElisionHints": {
+            "enable": "skip_trivial"
+          },
+          "closureReturnTypeHints": {
+            "enable": "always"
+          },
+          "parameterHints": {
+            "enable": true
+          }
+        },
+        "procMacro": {
+          "enable": true
+        }
+      }
+    }
+  },
+  "languages": {
+    "YAML": {
+      "enable_language_server": false
+    }
+  }
+}

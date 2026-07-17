@@ -1,0 +1,52 @@
+[
+  {
+    "context": "ProjectPanel",
+    "bindings": {
+      "ctrl-d": [
+        "project_panel::Trash",
+        {
+          "skip_prompt": true
+        }
+      ],
+      "ctrl-k": "project_panel::Duplicate"
+    }
+  },
+  {
+    "bindings": {
+      "ctrl-shift-w": [
+        "pane::CloseActiveItem",
+        {
+          "close_pinned": false
+        }
+      ]
+    }
+  },
+  {
+    "context": "Workspace",
+    "bindings": {
+      "ctrl-r": null
+    }
+  },
+  {
+    "context": "Workspace && !Terminal",
+    "bindings": {
+      "ctrl-r": [
+        "projects::OpenRecent",
+        {
+          "create_new_window": false
+        }
+      ]
+    }
+  },
+  {
+    "context": "Terminal",
+    "bindings": {
+      "ctrl-w h": "workspace::ActivatePaneLeft",
+      "ctrl-w l": "workspace::ActivatePaneRight",
+      "ctrl-w k": "workspace::ActivatePaneUp",
+      "ctrl-w j": "workspace::ActivatePaneDown",
+      "ctrl-w w": "workspace::ActivateNextPane",
+      "ctrl-w ctrl-w": "workspace::ActivateNextPane"
+    }
+  }
+]
