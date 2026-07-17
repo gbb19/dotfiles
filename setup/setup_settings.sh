@@ -25,6 +25,10 @@ create_symlinks() {
     if [[ "$base" == "." || "$base" == ".." ]]; then
       continue
     fi
+    # Skip home-manager to copy it instead of symlinking
+    if [[ "$base" == "home-manager" ]]; then
+      continue
+    fi
 
     target="$dest_dir/$base"
 
@@ -185,6 +189,12 @@ SRC_CONFIG="$REPO_DIR/.config"
 DEST_CONFIG="$HOME/.config"
 echo "⚙️ Setting up .config files..."
 create_symlinks "$SRC_CONFIG" "$DEST_CONFIG"
+
+# Copy home-manager configuration instead of symlinking
+if [[ -d "$SRC_CONFIG/home-manager" ]]; then
+  echo "🏠 Setting up home-manager configuration (copying)..."
+  copy_files "$SRC_CONFIG/home-manager" "$DEST_CONFIG/home-manager"
+fi
 
 # 2. Symlink bin scripts from repo's bin to ~/.local/bin
 SRC_BIN="$REPO_DIR/bin"
