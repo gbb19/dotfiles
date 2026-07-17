@@ -1,0 +1,140 @@
+// Place your key bindings in this file to override the defaults
+[
+  {
+    "key": "ctrl+alt+p",
+    "command": "workbench.action.quickOpenWithModes"
+  },
+  {
+    "key": "f",
+    "command": "explorer.newFile",
+    "when": "explorerViewletVisible && filesExplorerFocus && !inputFocus"
+  },
+  {
+    "key": "d",
+    "command": "explorer.newFolder",
+    "when": "explorerViewletVisible && filesExplorerFocus && !inputFocus"
+  },
+  {
+    "key": "r",
+    "command": "renameFile",
+    "when": "explorerViewletVisible && filesExplorerFocus && !inputFocus"
+  },
+  {
+    "key": "l",
+    "command": "list.toggleExpand",
+    "when": "listFocus && !inputFocus && !treestickyScrollFocused"
+  },
+  {
+    "key": "space",
+    "command": "-list.toggleExpand",
+    "when": "listFocus && !inputFocus && !treestickyScrollFocused"
+  },
+  {
+    "key": "space e",
+    "command": "workbench.view.explorer",
+    "when": "!editorFocus && !inputFocus"
+  },
+  {
+    "key": "ctrl+shift+p",
+    "command": "-workbench.action.showCommands"
+  },
+  {
+    "key": "ctrl+shift+p",
+    "command": "workbench.action.quickOpen"
+  },
+  {
+    "key": "ctrl+p",
+    "command": "-workbench.action.quickOpen"
+  },
+  {
+    "key": "l",
+    "command": "-list.select",
+    "when": "listFocus && !inputFocus"
+  },
+  {
+    "key": "ctrl+p",
+    "command": "editor.action.triggerSuggest",
+    "when": "editorHasCompletionItemProvider && textInputFocus && !editorReadonly && !suggestWidgetVisible"
+  },
+  {
+    "key": "ctrl+n",
+    "command": "editor.action.triggerSuggest",
+    "when": "editorHasCompletionItemProvider && textInputFocus && !editorReadonly && !suggestWidgetVisible"
+  },
+  {
+    "key": "alt+i",
+    "command": "settings.cycle.toggleInlayHints"
+  },
+  {
+    "key": "ctrl+shift+c",
+    "command": "-workbench.action.terminal.openNativeConsole",
+    "when": "!terminalFocus"
+  },
+  {
+    "key": "ctrl+alt+/",
+    "command": "rust-analyzer.restartServer",
+    "when": "editorFocus"
+  },
+  {
+    "key": "ctrl+n",
+    "command": "quickInput.next",
+    "when": "!editorFocus && inQuickInput && quickInputType == 'quickPick' || inQuickInput && quickInputType == 'quickTree'"
+  },
+  {
+    "key": "ctrl+p",
+    "command": "quickInput.previous",
+    "when": "!editorFocus && inQuickInput && quickInputType == 'quickPick' || inQuickInput && quickInputType == 'quickTree'"
+  },
+  {
+    "key": "ctrl+shift+w",
+    "command": "workbench.action.terminal.kill",
+    "when": "terminalFocus"
+  },
+  {
+    "key": "ctrl+shift+w",
+    "command": "-workbench.action.closeWindow"
+  },
+  {
+    "key": "ctrl+shift+backspace",
+    "command": "-search.searchEditor.action.deleteFileResults",
+    "when": "inSearchEditor"
+  },
+  {
+    "key": "ctrl+shift+backspace",
+    "command": "workbench.action.remote.close"
+  },
+  {
+    "key": "ctrl+` h",
+    "command": "workbench.action.navigateLeft",
+    "when": "terminalFocus"
+  },
+  {
+    "key": "ctrl+` l",
+    "command": "workbench.action.navigateRight",
+    "when": "terminalFocus"
+  },
+  {
+    "key": "ctrl+` k",
+    "command": "workbench.action.navigateUp",
+    "when": "terminalFocus"
+  },
+  {
+    "key": "ctrl+` j",
+    "command": "workbench.action.navigateDown",
+    "when": "terminalFocus"
+  },
+  {
+    "key": "ctrl+` ctrl+`",
+    "command": "workbench.action.focusNextGroup",
+    "when": "terminalFocus"
+  },
+  {
+    "key": "ctrl+w",
+    "command": "-workbench.action.closeActiveEditor"
+  },
+  {
+    "key": "escape",
+    "command": "workbench.action.focusActiveEditorGroup",
+    "when": "(sideBarFocus || panelFocus) && !inputFocus && !terminalFocus && !editorPartModal"
+  }
+]
