@@ -1,0 +1,7 @@
+#!/usr/bin/env zsh
+local input=$(base64 -w 0)
+if [ -n "$TMUX" ]; then
+  printf "\033Ptmux;\033\033]52;c;%s\a\033\\" "$input"
+else
+  printf "\033]52;c;%s\a" "$input"
+fi
