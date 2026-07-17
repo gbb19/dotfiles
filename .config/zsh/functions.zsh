@@ -102,7 +102,7 @@ git-gc() {
     --model 'Gemini 3.5 Flash (Low)' \
     --print \
     "$(
-      cat ~/Repos/github.com/gbb19/dotfiles/AI/git/git.md
+      cat ~/.config/zsh/git.md
       printf '\n\nOnly analyze staged changes below:\n\n'
       git diff --cached
     )" > "$tmp"
