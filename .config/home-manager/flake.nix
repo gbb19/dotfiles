@@ -55,6 +55,7 @@
                 docker
                 docker-compose
                 devcontainer
+                postgresql
                 kitty
               ];
             }

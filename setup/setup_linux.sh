@@ -49,17 +49,17 @@ install_packages() {
 
   local os_specific_packages=("${common_packages[@]}") # Start with common packages
 
-  # Add Go and fd-find based on OS
+  # Add Go, fd-find, and postgresql client based on OS
   if [[ "$OS" == "fedora" ]]; then
-    os_specific_packages+=(fd-find)
+    os_specific_packages+=(fd-find postgresql)
   elif [[ "$OS" == "arch" ]]; then
-    os_specific_packages+=(fd) # Arch uses 'fd'
+    os_specific_packages+=(fd postgresql-libs)
   elif [[ "$OS" == "void" ]]; then
-    os_specific_packages+=(fd) # Void uses 'go' and 'fd'
+    os_specific_packages+=(fd postgresql-client)
   elif [[ "$OS" == "debian" ]]; then
-    os_specific_packages+=(fd-find) # Debian uses 'golang-go' and 'fd-find'
+    os_specific_packages+=(fd-find postgresql-client)
   elif [[ "$OS" == "opensuse" ]]; then
-    os_specific_packages+=(fd) # openSUSE uses 'go' and 'fd'
+    os_specific_packages+=(fd postgresql)
   fi
 
   echo_title "📦 Installing essential packages for $OS..."
