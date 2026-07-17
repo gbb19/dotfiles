@@ -54,6 +54,7 @@
                 colima
                 docker
                 docker-compose
+                devcontainer
                 kitty
               ];
             }

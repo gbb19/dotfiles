@@ -4,6 +4,7 @@ export PATH=$PATH:/usr/local/go/bin
 export GOPATH="$HOME/Tools/go"
 export PATH="$PATH:$(go env GOBIN):$(go env GOPATH)/bin"
 export PATH="$HOME/.local/bin:$PATH" # Local bin path
+export PATH="$HOME/.devcontainers/bin:$PATH" # Devcontainer CLI path
 
 # Oh My Zsh directory
 export ZSH="$HOME/.oh-my-zsh"

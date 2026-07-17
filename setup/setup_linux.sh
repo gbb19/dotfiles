@@ -90,6 +90,17 @@ install_packages() {
   done
 }
 
+# Function to install devcontainer CLI
+install_devcontainer_cli() {
+  if ! command -v devcontainer &> /dev/null; then
+    echo_title "📦 Installing devcontainer CLI..."
+    curl -fsSL https://raw.githubusercontent.com/devcontainers/cli/main/scripts/install.sh | sh
+  else
+    echo "✅ devcontainer CLI is already installed."
+  fi
+}
+
 # Main execution
 detect_os
 install_packages
+install_devcontainer_cli
