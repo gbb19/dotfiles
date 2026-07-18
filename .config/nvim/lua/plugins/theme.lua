@@ -13,6 +13,15 @@ local onedark_colors = {
   bg_search = "#473c29",  -- Inactive search highlight background (dark gold)
   hint    = "#7A8FA8",   -- Hint fg: distinctly blue-toned, darker than regular text (#ABB2BF)
   bg_hint = "#2A303A",    -- Hint bg: slightly lighter than bg1 for subtle distinction
+
+  -- Syntax colors: matched to Zed One Dark (muted vs stock onedark)
+  red    = "#D07277",     -- property, variable.parameter  (stock: #E06C75)
+  orange = "#BF956A",     -- number, boolean, string.regex  (stock: #D19A66)
+  yellow = "#DFC184",     -- constant, selector             (stock: #E5C07B)
+  green  = "#A1C181",     -- string, text.literal           (stock: #98C379)
+  cyan   = "#6EB4BF",     -- type, enum, operator           (stock: #56B6C2)
+  blue   = "#74ADE8",     -- function, constructor, label   (stock: #61AFEF)
+  purple = "#B477CF",     -- keyword, preproc               (stock: #C678DD)
 }
 
 local onedark_highlights = {
