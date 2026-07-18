@@ -60,6 +60,7 @@
                 fzf
                 rsync
                 curl
+                tree
                 gnupg
                 fd
                 bat
