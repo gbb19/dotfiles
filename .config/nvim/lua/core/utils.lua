@@ -81,6 +81,8 @@ M.messages = {
   db_query_success_empty  = { "Query executed successfully (no rows returned)", levels.INFO },
   db_line_wrap_on         = { "Line wrap: ON", levels.INFO },
   db_line_wrap_off        = { "Line wrap: OFF", levels.INFO },
+  load_env_success        = { "Environment variables loaded from", levels.INFO },
+  load_env_not_found      = { "File not found", levels.ERROR },
 }
 
 --- Send a consistent user notification using pre-defined message keys
