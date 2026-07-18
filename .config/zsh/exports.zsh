@@ -1,3 +1,9 @@
+# Enable 256 color and true color support in terminal
+if [[ "$TERM" == "xterm" || "$TERM" == "screen" || "$TERM" == "linux" ]]; then
+  export TERM="xterm-256color"
+fi
+export COLORTERM="truecolor"
+
 export EDITOR=nvim
 # Environment variables
 export PATH=$PATH:/usr/local/go/bin
