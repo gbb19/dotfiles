@@ -124,7 +124,7 @@ fi
 # 4. Install/Upgrade Neovim (requires v0.12.0+ to support your config)
 NVIM_REQUIRED_MAJOR=0
 NVIM_REQUIRED_MINOR=12
-NVIM_VERSION_TAG="v0.12.0"
+NVIM_VERSION_TAG="v0.12.4"
 
 INSTALL_NVIM=false
 
