@@ -106,3 +106,9 @@ dev-down() {
   docker compose -p "$project" down "$@"
 }
 
+dev-start() {
+  local project
+  project=$(_get_dev_project_name)
+  echo "Starting devcontainer project '$project'..."
+  docker compose -p "$project" start "$@"
+}
