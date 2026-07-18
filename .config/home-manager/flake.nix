@@ -35,6 +35,20 @@
               manual.json.enable = false;
 
               programs.home-manager.enable = true;
+
+              # GPG config
+              programs.gpg = {
+                enable = true;
+              };
+
+              # GPG Agent config for macOS (caching password for 4 hours / 14400 seconds)
+              home.file.".gnupg/gpg-agent.conf".text = ''
+                default-cache-ttl 14400
+                max-cache-ttl 14400
+                default-cache-ttl-ssh 14400
+                max-cache-ttl-ssh 14400
+              '';
+
               home.packages = with pkgs; [
                 git
                 neovim
