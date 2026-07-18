@@ -65,3 +65,44 @@ alias dev-up='devcontainer up \
   --workspace-folder . \
   --dotfiles-repository https://github.com/gbb19/dotfiles.git \
   --dotfiles-install-command setup/setup_devcontainer.sh'
+
+# Helper to dynamically find the Docker Compose project name of the current workspace
+_get_dev_project_name() {
+  local ws_dir=$(pwd)
+  while [[ "$ws_dir" != "/" && ! -d "$ws_dir/.devcontainer" && ! -d "$ws_dir/.git" ]]; do
+    ws_dir=$(dirname "$ws_dir")
+  done
+  if [[ "$ws_dir" == "/" ]]; then
+    ws_dir=$(pwd)
+  fi
+
+  local container_id
+  container_id=$(docker ps --filter "label=devcontainer.local_folder=$ws_dir" -q | head -n 1)
+
+  local project_name
+  if [[ -n "$container_id" ]]; then
+    project_name=$(docker inspect "$container_id" --format='{{index .Config.Labels "com.docker.compose.project"}}' 2>/dev/null)
+  fi
+
+  if [[ -z "$project_name" ]]; then
+    project_name=$(basename "$ws_dir" | tr '[:upper:]' '[:lower:]' | tr -cd '[:alnum:]_-')
+  fi
+  echo "$project_name"
+}
+
+# Stop devcontainer services
+dev-stop() {
+  local project
+  project=$(_get_dev_project_name)
+  echo "⏸️ Stopping devcontainer project '$project'..."
+  docker compose -p "$project" stop "$@"
+}
+
+# Tear down devcontainer services (down or down -v)
+dev-down() {
+  local project
+  project=$(_get_dev_project_name)
+  echo "Shutting down devcontainer project '$project'..."
+  docker compose -p "$project" down "$@"
+}
+
