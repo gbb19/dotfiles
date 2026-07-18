@@ -66,7 +66,6 @@ alias dev-up='devcontainer up \
   --dotfiles-repository https://github.com/gbb19/dotfiles.git \
   --dotfiles-install-command setup/setup_devcontainer.sh'
 
-# Helper to dynamically find the Docker Compose project name of the current workspace
 _get_dev_project_name() {
   local ws_dir=$(pwd)
   while [[ "$ws_dir" != "/" && ! -d "$ws_dir/.devcontainer" && ! -d "$ws_dir/.git" ]]; do
@@ -77,12 +76,15 @@ _get_dev_project_name() {
   fi
 
   local container_id
-  container_id=$(docker ps --filter "label=devcontainer.local_folder=$ws_dir" -q | head -n 1)
+  container_id=$(docker ps -a --filter "label=devcontainer.local_folder=$ws_dir" -q | head -n 1)
+
+  if [[ -z "$container_id" ]]; then
+    echo "⚠️ Error: No devcontainer found for workspace '$ws_dir'." >&2
+    return 1
+  fi
 
   local project_name
-  if [[ -n "$container_id" ]]; then
-    project_name=$(docker inspect "$container_id" --format='{{index .Config.Labels "com.docker.compose.project"}}' 2>/dev/null)
-  fi
+  project_name=$(docker inspect "$container_id" --format='{{index .Config.Labels "com.docker.compose.project"}}' 2>/dev/null)
 
   if [[ -z "$project_name" ]]; then
     project_name=$(basename "$ws_dir" | tr '[:upper:]' '[:lower:]' | tr -cd '[:alnum:]_-')
@@ -93,7 +95,7 @@ _get_dev_project_name() {
 # Stop devcontainer services
 dev-stop() {
   local project
-  project=$(_get_dev_project_name)
+  project=$(_get_dev_project_name) || return 1
   echo "⏸️ Stopping devcontainer project '$project'..."
   docker compose -p "$project" stop "$@"
 }
@@ -101,14 +103,16 @@ dev-stop() {
 # Tear down devcontainer services (down or down -v)
 dev-down() {
   local project
-  project=$(_get_dev_project_name)
-  echo "Shutting down devcontainer project '$project'..."
+  project=$(_get_dev_project_name) || return 1
+  echo "⬇️ Shutting down devcontainer project '$project'..."
   docker compose -p "$project" down "$@"
 }
 
+# Start devcontainer services
 dev-start() {
   local project
-  project=$(_get_dev_project_name)
-  echo "Starting devcontainer project '$project'..."
+  project=$(_get_dev_project_name) || return 1
+  echo "▶️ Starting devcontainer project '$project'..."
   docker compose -p "$project" start "$@"
 }
+
