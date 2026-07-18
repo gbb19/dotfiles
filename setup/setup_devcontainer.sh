@@ -183,28 +183,28 @@ if [ ! -d "$ZSH_CUSTOM/plugins/zsh-syntax-highlighting" ]; then
     git clone https://github.com/zsh-users/zsh-syntax-highlighting.git "$ZSH_CUSTOM/plugins/zsh-syntax-highlighting"
 fi
 
-# 6. Create symlinks
-echo "🔗 Linking configuration files..."
+# 6. Copy configuration files (avoiding broken symlinks in transient containers)
+echo "📋 Copying configuration files..."
 mkdir -p "$HOME/.config"
 
-# Symlink configurations from repo to ~/.config
+# Copy configurations from repo to ~/.config
 for dir in nvim zsh; do
     if [ -d "$REPO_DIR/.config/$dir" ]; then
         rm -rf "$HOME/.config/$dir"
-        ln -sf "$REPO_DIR/.config/$dir" "$HOME/.config/$dir"
-        echo "   Linked config: ~/.config/$dir -> $REPO_DIR/.config/$dir"
+        cp -R "$REPO_DIR/.config/$dir" "$HOME/.config/$dir"
+        echo "   Copied config: ~/.config/$dir <- $REPO_DIR/.config/$dir"
     fi
 done
 
-# Symlink files from repo/home to ~
+# Copy files from repo/home to ~
 if [ -d "$REPO_DIR/home" ]; then
     for file in "$REPO_DIR"/home/* "$REPO_DIR"/home/.*; do
         if [ -e "$file" ]; then
             basename_file=$(basename "$file")
             if [ "$basename_file" != "." ] && [ "$basename_file" != ".." ] && [ "$basename_file" != ".git" ] && [ "$basename_file" != "*" ]; then
                 rm -rf "$HOME/$basename_file"
-                ln -sf "$file" "$HOME/$basename_file"
-                echo "   Linked home: ~/$basename_file -> $file"
+                cp -R "$file" "$HOME/$basename_file"
+                echo "   Copied home: ~/$basename_file <- $file"
             fi
         fi
     done

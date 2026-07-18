@@ -64,6 +64,7 @@
                 gnupg
                 fd
                 bat
+                delta
                 tailscale
                 htop
                 colima
