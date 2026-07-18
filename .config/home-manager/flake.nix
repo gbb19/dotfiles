@@ -57,6 +57,7 @@
                 devcontainer
                 postgresql
                 kitty
+                ghq
               ];
             }
           ];

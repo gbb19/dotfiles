@@ -29,6 +29,11 @@ create_symlinks() {
     if [[ "$base" == "home-manager" ]]; then
       continue
     fi
+    # Skip ghq on macOS since the one in repo is a Linux binary
+    if [[ "$base" == "ghq" && "$(uname -s)" == "Darwin" ]]; then
+      echo "⏭️ Skipping ghq symlink on macOS (Linux binary format)"
+      continue
+    fi
 
     target="$dest_dir/$base"
 
