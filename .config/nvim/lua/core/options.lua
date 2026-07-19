@@ -53,6 +53,7 @@ vim.opt.updatetime = 250
 vim.opt.signcolumn = "yes"
 vim.opt.timeoutlen = 500
 vim.opt.cursorline = true  -- Highlight the current line
+vim.opt.conceallevel = 2   -- Conceal markdown formatting markers (like code block backticks)
 vim.opt.pumheight = 10     -- Limit completion menu to 10 items max
 vim.opt.exrc = true    -- Enable project-local config (.nvim.lua)
 vim.opt.undofile = true -- Persist undo history across sessions (stored in ~/.local/state/nvim/undo/)

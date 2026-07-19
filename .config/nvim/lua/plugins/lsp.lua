@@ -377,6 +377,20 @@ vim.api.nvim_create_autocmd("LspAttach", {
   end,
 })
 
+-- Custom handler for hover to ensure proper styling and conceal (hiding markdown backticks/languages)
+local orig_hover_handler = vim.lsp.handlers["textDocument/hover"]
+vim.lsp.handlers["textDocument/hover"] = function(err, result, ctx, config)
+  config = config or {}
+  config.border = "rounded"
+  local fbuf, fwin = orig_hover_handler(err, result, ctx, config)
+  if fwin and fbuf then
+    -- Force conceal in hover float window to hide markdown syntax block formatting (like ```typescript)
+    vim.wo[fwin].conceallevel = 2
+    vim.wo[fwin].concealcursor = "nvc"
+  end
+  return fbuf, fwin
+end
+
 -- Diagnostic navigation keymaps (Global)
 vim.keymap.set("n", "[d", function()
   vim.diagnostic.jump({ count = -1 })
