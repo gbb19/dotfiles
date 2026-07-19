@@ -118,6 +118,12 @@ function M.on_attach(client, bufnr)
           if result then
             vim.lsp.util.apply_workspace_edit(result, "utf-8")
           end
+          -- Ensure target directory exists before renaming
+          local target_dir = vim.fn.fnamemodify(target, ":h")
+          if vim.fn.isdirectory(target_dir) == 0 then
+            vim.fn.mkdir(target_dir, "p")
+          end
+
           -- Rename the physical file on disk
           local ok, err_msg = os.rename(source, target)
           if ok then
