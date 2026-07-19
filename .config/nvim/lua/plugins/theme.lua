@@ -14,14 +14,14 @@ local onedark_colors = {
   hint    = "#7A8FA8",   -- Hint fg: distinctly blue-toned, darker than regular text (#ABB2BF)
   bg_hint = "#2A303A",    -- Hint bg: slightly lighter than bg1 for subtle distinction
 
-  -- Syntax colors: matched to Zed One Dark (muted vs stock onedark)
-  red    = "#D07277",     -- property, variable.parameter  (stock: #E06C75)
-  orange = "#BF956A",     -- number, boolean, string.regex  (stock: #D19A66)
-  yellow = "#DFC184",     -- constant, selector             (stock: #E5C07B)
-  green  = "#A1C181",     -- string, text.literal           (stock: #98C379)
-  cyan   = "#6EB4BF",     -- type, enum, operator           (stock: #56B6C2)
-  blue   = "#74ADE8",     -- function, constructor, label   (stock: #61AFEF)
-  purple = "#B477CF",     -- keyword, preproc               (stock: #C678DD)
+  -- Syntax colors: Zed One Dark base, saturation +20% (hue & lightness unchanged)
+  red    = "#D9686E",     -- property, variable.parameter  (base: #D07277)
+  orange = "#C79561",     -- number, boolean, string.regex  (base: #BF956A)
+  yellow = "#E8C47A",     -- constant, selector             (base: #DFC184)
+  green  = "#A1C77A",     -- string, text.literal           (base: #A1C181)
+  cyan   = "#65B9C7",     -- type, enum, operator           (base: #6EB4BF)
+  blue   = "#68ACF3",     -- function, constructor, label   (base: #74ADE8)
+  purple = "#B76ED7",     -- keyword, preproc               (base: #B477CF)
 }
 
 local onedark_highlights = {

@@ -47,6 +47,7 @@
                 max-cache-ttl 14400
                 default-cache-ttl-ssh 14400
                 max-cache-ttl-ssh 14400
+                pinentry-program ${pkgs.pinentry-curses}/bin/pinentry-curses
               '';
 
               home.packages = with pkgs; [
