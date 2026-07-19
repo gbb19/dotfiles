@@ -28,6 +28,8 @@ vim.pack.add({
   -- Declarative package manager for LSPs
   "https://github.com/williamboman/mason.nvim",
   "https://github.com/williamboman/mason-lspconfig.nvim",
+  -- Manage workspace libraries for Neovim config files dynamically
+  "https://github.com/folke/lazydev.nvim",
 })
 
 -- If the current file is SQL, pre-load plugins.dadbod to ensure the dadbod completion source
@@ -37,6 +39,16 @@ if vim.bo.filetype == "sql" then
 end
 
 -- Safely configure plugins
+local lazydev_ok, lazydev = pcall(require, "lazydev")
+if lazydev_ok then
+  lazydev.setup({
+    library = {
+      -- Load luvit types when the `vim.uv` word is found
+      { path = "${3rd}/luv/library", words = { "vim%.uv" } },
+    },
+  })
+end
+
 local blink_ok, blink = pcall(require, "blink.cmp")
 local mason_ok, mason = pcall(require, "mason")
 local mason_lspconfig_ok, mason_lspconfig = pcall(require, "mason-lspconfig")
@@ -49,11 +61,16 @@ if blink_ok then
       ["<Tab>"] = { "accept", "fallback" }, -- Map Tab to accept completion when menu is open
     },
     sources = {
-      default = { "lsp", "path", "snippets", "buffer" },
+      default = { "lazydev", "lsp", "path", "snippets", "buffer" },
       per_filetype = {
         sql = { "sql_columns", "sql_tables", "sql_keywords", "snippets", "buffer" },
       },
       providers = {
+        lazydev = {
+          name = "LazyDev",
+          module = "lazydev.integrations.blink",
+          score_offset = 100,
+        },
         -- Custom SQL column source: resolves schema-qualified aliases and fetches
         -- column names directly from PostgreSQL, bypassing vim-dadbod-completion limitations.
         sql_columns = {
