@@ -307,7 +307,11 @@ local async_ok, async = pcall(require, "snacks.picker.util.async")
 if async_ok then
   local original_yielder = async.yielder
   async.yielder = function(ms)
-    if not async.running() then
+    local is_yieldable = true
+    if type(coroutine.isyieldable) == "function" then
+      is_yieldable = coroutine.isyieldable()
+    end
+    if not async.running() or not is_yieldable then
       return function() end
     end
     return original_yielder(ms)
