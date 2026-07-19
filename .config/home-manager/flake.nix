@@ -53,6 +53,9 @@
               home.packages = with pkgs; [
                 git
                 neovim
+                gcc
+                gnumake
+                tree-sitter
                 zoxide
                 unzip
                 zip
@@ -63,6 +66,7 @@
                 curl
                 tree
                 gnupg
+                tree
                 fd
                 bat
                 delta
