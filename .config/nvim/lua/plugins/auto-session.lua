@@ -10,7 +10,7 @@ if ok then
     auto_restore = false, -- Disable auto-restore so Dashboard/Splash screen shows first
     -- Save sessions in Neovim's standard data directory (keeps project clean)
     root_dir = vim.fn.stdpath("data") .. "/sessions/",
-    auto_create = true,
+    auto_create = vim.fn.argc() == 0, -- Don't create/overwrite session when opening specific files
     -- Disable git branch specific sessions (keep it simple per-directory)
     git_use_branch_name = false,
     -- Do not save sessions for Git commits, diffs, file explorers, or special buffers
