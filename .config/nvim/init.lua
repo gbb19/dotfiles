@@ -43,6 +43,7 @@ vim.api.nvim_create_autocmd({ "BufReadPre", "BufNewFile" }, {
     require("plugins.bufferline")
     require("plugins.lsp")
     require("plugins.treesitter")
+    require("plugins.treesitter-context")
   end,
   once = true,
 })
