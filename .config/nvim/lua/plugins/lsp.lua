@@ -377,52 +377,6 @@ vim.api.nvim_create_autocmd("LspAttach", {
   end,
 })
 
--- Custom LSP hover handler to clean markdown block tags and set buffer syntax directly
-local orig_hover_handler = vim.lsp.handlers["textDocument/hover"]
-vim.lsp.handlers["textDocument/hover"] = function(err, result, ctx, config)
-  config = config or {}
-  config.border = "rounded"
-
-  local fbuf, fwin = orig_hover_handler(err, result, ctx, config)
-
-  if fwin and fbuf then
-    -- Read the first line of the hover buffer
-    local first_line = vim.api.nvim_buf_get_lines(fbuf, 0, 1, false)[1]
-    local extracted_lang = nil
-
-    if first_line then
-      -- Detect language indicator: e.g. "typescript" or "```typescript"
-      local clean_lang = first_line:match("^%s*```%s*(%w+)%s*$") or first_line:match("^%s*(%w+)%s*$")
-      local common_langs = {
-        typescript = true, javascript = true, lua = true, python = true,
-        json = true, css = true, html = true, go = true, rust = true,
-        sql = true, sh = true, bash = true, yaml = true
-      }
-      if clean_lang and common_langs[clean_lang:lower()] then
-        extracted_lang = clean_lang:lower()
-        -- Delete the first line (the language tag) from the buffer
-        vim.api.nvim_buf_set_lines(fbuf, 0, 1, false, {})
-      end
-    end
-
-    -- Clean the trailing code fence line if present
-    local line_count = vim.api.nvim_buf_line_count(fbuf)
-    if line_count > 0 then
-      local last_line = vim.api.nvim_buf_get_lines(fbuf, line_count - 1, line_count, false)[1]
-      if last_line and last_line:match("^%s*```%s*$") then
-        vim.api.nvim_buf_set_lines(fbuf, line_count - 1, line_count, false, {})
-      end
-    end
-
-    -- Force set the buffer's filetype to highlight the code block properly
-    if extracted_lang then
-      vim.bo[fbuf].filetype = extracted_lang
-    end
-  end
-
-  return fbuf, fwin
-end
-
 -- Diagnostic navigation keymaps (Global)
 vim.keymap.set("n", "[d", function()
   vim.diagnostic.jump({ count = -1 })
