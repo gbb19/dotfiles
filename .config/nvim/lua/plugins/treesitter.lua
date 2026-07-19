@@ -60,8 +60,8 @@ if ts_ok then
     callback = function(args)
       local lang = vim.treesitter.language.get_lang(vim.bo[args.buf].filetype)
       if lang and pcall(vim.treesitter.start, args.buf, lang) then
+        vim.bo[args.buf].indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
       end
-      vim.bo[args.buf].indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
     end,
   })
 end
