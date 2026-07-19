@@ -36,6 +36,9 @@ end
 function SqlColumnSource:get_completions(ctx, callback)
   local bufnr  = vim.api.nvim_get_current_buf()
   local db_url = vim.b[bufnr].db or vim.g.db
+  if type(db_url) == "table" then
+    db_url = db_url.url or db_url[1]
+  end
   if not db_url or db_url == "" then
     callback(nil)
     return
