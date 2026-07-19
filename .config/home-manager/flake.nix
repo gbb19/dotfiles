@@ -79,6 +79,7 @@
                 postgresql
                 kitty
                 ghq
+                sql-formatter
               ];
             }
           ];
