@@ -31,8 +31,17 @@ if ok then
       left_pad = 0,
       right_pad = 0,
       width = "block",
-    },
   })
+
+  -- Immediately render the current buffer if we just lazy loaded the plugin
+  local current_buf = vim.api.nvim_get_current_buf()
+  if vim.bo[current_buf].filetype == "markdown" then
+    local winid = vim.fn.bufwinid(current_buf)
+    pcall(require("render-markdown").render, {
+      buf = current_buf,
+      win = winid ~= -1 and winid or nil
+    })
+  end
 
   -- Toggle keymap to turn on/off rendering easily (buffer-local to markdown files to avoid conflicts)
   local function set_keymap(bufnr)
