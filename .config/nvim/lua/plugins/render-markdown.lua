@@ -39,7 +39,7 @@ if ok then
   local current_buf = vim.api.nvim_get_current_buf()
   if vim.bo[current_buf].filetype == "markdown" then
     local winid = vim.fn.bufwinid(current_buf)
-    pcall(require("render-markdown").render, {
+    pcall(render_markdown.render, {
       buf = current_buf,
       win = winid ~= -1 and winid or nil
     })
