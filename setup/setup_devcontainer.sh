@@ -157,7 +157,6 @@ if [ "$INSTALL_NVIM" = true ]; then
 fi
 
 # 5. Install Tree-sitter CLI if missing
-TS_VERSION="v0.26.11"
 if ! command -v tree-sitter >/dev/null 2>&1; then
     echo "📥 Installing Tree-sitter CLI (${ARCH})..."
     OS=$(uname -s | tr '[:upper:]' '[:lower:]')
@@ -171,18 +170,37 @@ if ! command -v tree-sitter >/dev/null 2>&1; then
         TS_ARCH="arm64"
     fi
 
-    TEMP_DIR=$(mktemp -d)
-    if curl -sL --fail "https://github.com/tree-sitter/tree-sitter/releases/download/${TS_VERSION}/tree-sitter-cli-${TS_OS}-${TS_ARCH}.zip" -o "$TEMP_DIR/tree-sitter.zip"; then
-        unzip -q "$TEMP_DIR/tree-sitter.zip" -d "$TEMP_DIR"
-        mkdir -p "$HOME/.local/bin"
-        cp "$TEMP_DIR/tree-sitter" "$HOME/.local/bin/"
-        chmod +x "$HOME/.local/bin/tree-sitter"
-        export PATH="$HOME/.local/bin:$PATH"
-        echo "✅ Tree-sitter CLI version ${TS_VERSION} installed successfully."
-    else
-        echo "⚠️ Failed to download Tree-sitter CLI pre-built binary."
+    VERSIONS=("v0.26.11" "v0.24.7" "v0.22.6")
+    INSTALLED=false
+
+    for version in "${VERSIONS[@]}"; do
+        echo "   Trying version ${version}..."
+        TEMP_DIR=$(mktemp -d)
+        if curl -sL --fail "https://github.com/tree-sitter/tree-sitter/releases/download/${version}/tree-sitter-cli-${TS_OS}-${TS_ARCH}.zip" -o "$TEMP_DIR/tree-sitter.zip" 2>/dev/null; then
+            unzip -q "$TEMP_DIR/tree-sitter.zip" -d "$TEMP_DIR"
+            chmod +x "$TEMP_DIR/tree-sitter"
+            
+            # Test if the binary runs on the current GLIBC/system
+            if "$TEMP_DIR/tree-sitter" --version >/dev/null 2>&1; then
+                mkdir -p "$HOME/.local/bin"
+                cp "$TEMP_DIR/tree-sitter" "$HOME/.local/bin/"
+                export PATH="$HOME/.local/bin:$PATH"
+                echo "✅ Tree-sitter CLI ${version} installed successfully."
+                INSTALLED=true
+                rm -rf "$TEMP_DIR"
+                break
+            else
+                echo "   ⚠️ Version ${version} failed to execute (likely due to system GLIBC incompatibility)."
+            fi
+        else
+            echo "   ⚠️ Failed to download Tree-sitter CLI ${version}."
+        fi
+        rm -rf "$TEMP_DIR"
+    done
+
+    if [ "$INSTALLED" = false ]; then
+        echo "❌ Unable to install a compatible Tree-sitter CLI binary."
     fi
-    rm -rf "$TEMP_DIR"
 fi
 
 # 6. Install Oh My Zsh and plugins (non-interactive)
