@@ -87,23 +87,30 @@ vim.api.nvim_create_user_command("PackLspInstall", function(opts)
 
   local servers = {}
   local daps = {}
-  local target = opts.args
 
-  if target and target ~= "" then
-    -- Load specific language module
-    local ok, config = pcall(require, "languages." .. target)
-    if not ok or type(config) ~= "table" then
-      utils.notify("language_load_failed", target)
-      return
-    end
-    if config.lsp and config.lsp.mason then
-      servers = config.lsp.mason
-    end
-    if config.dap and config.dap.mason then
-      daps = config.dap.mason
+  -- Parse args: split on whitespace and trim each token
+  local targets = {}
+  for token in opts.args:gmatch("%S+") do
+    table.insert(targets, vim.trim(token))
+  end
+
+  if #targets > 0 then
+    -- Load each specified language module and aggregate servers/daps
+    for _, target in ipairs(targets) do
+      local ok, config = pcall(require, "languages." .. target)
+      if not ok or type(config) ~= "table" then
+        utils.notify("language_load_failed", target)
+        return
+      end
+      if config.lsp and config.lsp.mason then
+        vim.list_extend(servers, config.lsp.mason)
+      end
+      if config.dap and config.dap.mason then
+        vim.list_extend(daps, config.dap.mason)
+      end
     end
   else
-    -- Load all configured servers and DAPs
+    -- No args: install all configured servers and DAPs
     local languages = require("languages")
     servers = languages.mason_servers
     daps = languages.dap_servers or {}
@@ -156,20 +163,31 @@ vim.api.nvim_create_user_command("PackLspInstall", function(opts)
     vim.cmd("MasonInstall " .. table.concat(to_install_dap, " "))
   end
 end, {
-  nargs = "?",
-  complete = function(arg_lead, cmd_line, cursor_pos)
+  nargs = "*",
+  complete = function(arg_lead, cmd_line, _cursor_pos)
+    -- Collect languages already typed in the command line (excluding command name itself)
+    local already_typed = {}
+    local cmd_tokens = vim.split(cmd_line, "%s+", { trimempty = true })
+    -- cmd_tokens[1] is the command name; rest are already-typed langs
+    for i = 2, #cmd_tokens do
+      already_typed[vim.trim(cmd_tokens[i])] = true
+    end
+
     local lang_dir = vim.fn.stdpath("config") .. "/lua/languages"
     local files = vim.fn.glob(lang_dir .. "/*.lua", false, true)
     local langs = {}
     for _, filepath in ipairs(files) do
       local name = vim.fn.fnamemodify(filepath, ":t:r")
-      if name ~= "init" and name:find("^" .. vim.pesc(arg_lead)) then
+      if name ~= "init"
+        and name:find("^" .. vim.pesc(arg_lead))
+        and not already_typed[name]
+      then
         table.insert(langs, name)
       end
     end
     return langs
   end,
-  desc = "Install configured LSP and DAP servers (optional: specify language)"
+  desc = "Install configured LSP and DAP servers (optional: specify one or more languages)"
 })
 
 -- Load .env file variables into vim.env (e.g. :LoadEnv .env.local)
