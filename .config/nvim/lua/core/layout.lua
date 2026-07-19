@@ -4,6 +4,9 @@ local M = {}
 
 -- Checks if a window's buffer is a sidebar or utility buffer
 function M.is_sidebar(bufnr)
+  if not bufnr or not vim.api.nvim_buf_is_valid(bufnr) then
+    return false
+  end
   local buftype = vim.bo[bufnr].buftype
   local filetype = vim.bo[bufnr].filetype
 
