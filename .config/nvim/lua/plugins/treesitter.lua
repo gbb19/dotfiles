@@ -8,46 +8,52 @@ if ts_ok then
   local install_dir = vim.fs.joinpath(vim.fn.stdpath("data"), "site")
   ts.setup({
     install_dir = install_dir,
-    textobjects = {
+  })
+
+  local to_ok, to = pcall(require, "nvim-treesitter-textobjects")
+  if to_ok then
+    to.setup({
       select = {
         enable = true,
         lookahead = true, -- Automatically jump forward to textobj, similar to targets.vim
-        keymaps = {
-          -- Capture groups defined in textobjects.scm
-          ["af"] = { query = "@function.outer", desc = "Around function outer" },
-          ["if"] = { query = "@function.inner", desc = "Inside function inner" },
-          ["ac"] = { query = "@class.outer", desc = "Around class outer" },
-          ["ic"] = { query = "@class.inner", desc = "Inside class inner" },
-          ["ai"] = { query = "@conditional.outer", desc = "Around conditional outer" },
-          ["ii"] = { query = "@conditional.inner", desc = "Inside conditional inner" },
-          ["al"] = { query = "@loop.outer", desc = "Around loop outer" },
-          ["il"] = { query = "@loop.inner", desc = "Inside loop inner" },
-          ["a,"] = { query = "@parameter.outer", desc = "Around parameter outer" },
-          ["i,"] = { query = "@parameter.inner", desc = "Inside parameter inner" },
-        },
       },
       move = {
         enable = true,
         set_jumps = true, -- whether to set jumps in the jumplist
-        goto_next_start = {
-          ["]m"] = { query = "@function.outer", desc = "Next function start" },
-          ["]c"] = { query = "@class.outer", desc = "Next class start" },
-        },
-        goto_next_end = {
-          ["]M"] = { query = "@function.outer", desc = "Next function end" },
-          ["]C"] = { query = "@class.outer", desc = "Next class end" },
-        },
-        goto_previous_start = {
-          ["[m"] = { query = "@function.outer", desc = "Previous function start" },
-          ["[c"] = { query = "@class.outer", desc = "Previous class start" },
-        },
-        goto_previous_end = {
-          ["[M"] = { query = "@function.outer", desc = "Previous function end" },
-          ["[C"] = { query = "@class.outer", desc = "Previous class end" },
-        },
       },
-    },
-  })
+    })
+
+    -- Explicit Text Objects selection mappings (Visual 'x' and Operator-pending 'o' modes)
+    local select_ts = require("nvim-treesitter-textobjects.select").select_textobject
+    local ts_maps = {
+      ["af"] = "@function.outer",
+      ["if"] = "@function.inner",
+      ["ac"] = "@class.outer",
+      ["ic"] = "@class.inner",
+      ["ai"] = "@conditional.outer",
+      ["ii"] = "@conditional.inner",
+      ["al"] = "@loop.outer",
+      ["il"] = "@loop.inner",
+      ["a,"] = "@parameter.outer",
+      ["i,"] = "@parameter.inner",
+    }
+    for key, query in pairs(ts_maps) do
+      vim.keymap.set({ "x", "o" }, key, function()
+        select_ts(query, "textobjects")
+      end, { desc = "Select " .. query })
+    end
+
+    -- Explicit Move mappings
+    local move_ts = require("nvim-treesitter-textobjects.move")
+    vim.keymap.set({ "n", "x", "o" }, "]m", function() move_ts.goto_next_start("@function.outer", "textobjects") end, { desc = "Next function start" })
+    vim.keymap.set({ "n", "x", "o" }, "]c", function() move_ts.goto_next_start("@class.outer", "textobjects") end, { desc = "Next class start" })
+    vim.keymap.set({ "n", "x", "o" }, "]M", function() move_ts.goto_next_end("@function.outer", "textobjects") end, { desc = "Next function end" })
+    vim.keymap.set({ "n", "x", "o" }, "]C", function() move_ts.goto_next_end("@class.outer", "textobjects") end, { desc = "Next class end" })
+    vim.keymap.set({ "n", "x", "o" }, "[m", function() move_ts.goto_previous_start("@function.outer", "textobjects") end, { desc = "Previous function start" })
+    vim.keymap.set({ "n", "x", "o" }, "[c", function() move_ts.goto_previous_start("@class.outer", "textobjects") end, { desc = "Previous class start" })
+    vim.keymap.set({ "n", "x", "o" }, "[M", function() move_ts.goto_previous_end("@function.outer", "textobjects") end, { desc = "Previous function end" })
+    vim.keymap.set({ "n", "x", "o" }, "[C", function() move_ts.goto_previous_end("@class.outer", "textobjects") end, { desc = "Previous class end" })
+  end
 
   vim.api.nvim_create_autocmd("FileType", {
     group = vim.api.nvim_create_augroup("TreesitterCore", { clear = true }),
