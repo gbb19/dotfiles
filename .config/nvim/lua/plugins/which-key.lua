@@ -12,7 +12,6 @@ if ok then
     },
   })
 
-  -- Register keymap groups
   wk.add({
     { "<leader>b",  group = "Buffers" },
     { "<leader>c",  group = "Code/LSP/Format" },
@@ -24,5 +23,14 @@ if ok then
     { "<leader>r",  group = "Database" },
     { "<leader>s",  group = "Session" },
     { "<leader>t",  group = "Task Runner" },
+    -- nvim-surround mappings documentation
+    { "ys",         group = "Add Surround" },
+    { "yss",        desc = "Add Surround Line" },
+    { "yS",         group = "Add Surround (New Line)" },
+    { "ySS",        desc = "Add Surround Line (New Line)" },
+    { "ds",         desc = "Delete Surround" },
+    { "cs",         desc = "Change Surround" },
+    { "S",          desc = "Add Surround", mode = "x" },
+    { "gS",         desc = "Add Surround (New Line)", mode = "x" },
   })
 end
