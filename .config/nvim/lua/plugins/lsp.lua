@@ -48,10 +48,68 @@ if lazydev_ok then
     },
   })
 end
-
 local blink_ok, blink = pcall(require, "blink.cmp")
 local mason_ok, mason = pcall(require, "mason")
 local mason_lspconfig_ok, mason_lspconfig = pcall(require, "mason-lspconfig")
+
+-- Helper to dynamically detect SQL query context for smart completion sorting
+local function detect_sql_context(bufnr, row, col, line)
+  -- 1. Check if cursor is immediately after a dot "." (alias/schema selection)
+  local line_before = line:sub(1, col)
+  if line_before:match("[%w_%-\"]+%.[%w_]*$") then
+    return "column"
+  end
+
+  -- 2. Get buffer lines up to current cursor position to parse preceding context
+  local lines = vim.api.nvim_buf_get_lines(bufnr, 0, row, false)
+  lines[#lines] = line_before
+  local text = table.concat(lines, " ")
+
+  -- Strip SQL comments to avoid false keyword matches
+  text = text:gsub("%-%-[^\n]*", ""):gsub("/%*.-%*/", "")
+  text = text:gsub("%s+", " ")
+
+  -- Match the last significant SQL clause keyword before the cursor
+  local last_keyword = nil
+  for word in text:gmatch("[%w_]+") do
+    local upper_word = word:upper()
+    if upper_word == "FROM" or upper_word == "JOIN" or upper_word == "UPDATE" or upper_word == "INTO" or upper_word == "TABLE" then
+      last_keyword = "table"
+    elseif upper_word == "SELECT" or upper_word == "WHERE" or upper_word == "SET" or upper_word == "AND" or upper_word == "OR" or upper_word == "ON" or upper_word == "BY" then
+      last_keyword = "column"
+    end
+  end
+
+  return last_keyword or "keyword"
+end
+
+local cached_context = nil
+local last_tick = nil
+local last_cursor = nil
+
+local function get_sql_context_cached()
+  local bufnr = vim.api.nvim_get_current_buf()
+  local ft = vim.bo[bufnr].filetype
+  if ft ~= "sql" then
+    return "keyword"
+  end
+
+  local cursor = vim.api.nvim_win_get_cursor(0)
+  local tick = vim.b[bufnr].changedtick
+
+  if last_tick == tick and last_cursor and last_cursor[1] == cursor[1] and last_cursor[2] == cursor[2] then
+    return cached_context
+  end
+
+  last_tick = tick
+  last_cursor = cursor
+
+  local row, col = cursor[1], cursor[2]
+  local line = vim.api.nvim_get_current_line()
+
+  cached_context = detect_sql_context(bufnr, row, col, line)
+  return cached_context
+end
 
 -- 1. Setup Autocomplete engine (blink.cmp)
 if blink_ok then
@@ -138,10 +196,26 @@ if blink_ok then
     signature = { window = { border = "rounded" } },
     fuzzy = {
       sorts = {
-        -- Custom sort: strictly order SQL sources by sortText alphabetically
+        -- Custom sort: dynamically prioritize SQL sources based on syntax context
         function(a, b)
           local sql_sources = { sql_columns = true, sql_tables = true, sql_keywords = true }
           if sql_sources[a.source_id] and sql_sources[b.source_id] then
+            local ctx_type = get_sql_context_cached()
+            local priorities
+            if ctx_type == "column" then
+              priorities = { sql_columns = 3, sql_keywords = 2, sql_tables = 1 }
+            elseif ctx_type == "table" then
+              priorities = { sql_tables = 3, sql_keywords = 2, sql_columns = 1 }
+            else -- "keyword"
+              priorities = { sql_keywords = 3, sql_columns = 2, sql_tables = 1 }
+            end
+
+            local a_prio = priorities[a.source_id] or 0
+            local b_prio = priorities[b.source_id] or 0
+            if a_prio ~= b_prio then
+              return a_prio > b_prio
+            end
+
             local a_sort = a.sortText or a.label
             local b_sort = b.sortText or b.label
             if a_sort ~= b_sort then
