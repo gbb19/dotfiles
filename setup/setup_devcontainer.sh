@@ -176,8 +176,8 @@ if ! command -v tree-sitter >/dev/null 2>&1; then
     for version in "${VERSIONS[@]}"; do
         echo "   Trying version ${version}..."
         TEMP_DIR=$(mktemp -d)
-        if curl -sL --fail "https://github.com/tree-sitter/tree-sitter/releases/download/${version}/tree-sitter-cli-${TS_OS}-${TS_ARCH}.zip" -o "$TEMP_DIR/tree-sitter.zip" 2>/dev/null; then
-            unzip -q "$TEMP_DIR/tree-sitter.zip" -d "$TEMP_DIR"
+        if curl -sL --fail "https://github.com/tree-sitter/tree-sitter/releases/download/${version}/tree-sitter-${TS_OS}-${TS_ARCH}.gz" -o "$TEMP_DIR/tree-sitter.gz" 2>/dev/null; then
+            gunzip "$TEMP_DIR/tree-sitter.gz"
             chmod +x "$TEMP_DIR/tree-sitter"
             
             # Test if the binary runs on the current GLIBC/system
