@@ -156,7 +156,36 @@ if [ "$INSTALL_NVIM" = true ]; then
     export PATH="$HOME/.local/bin:$PATH"
 fi
 
-# 5. Install Oh My Zsh and plugins (non-interactive)
+# 5. Install Tree-sitter CLI if missing
+TS_VERSION="v0.26.11"
+if ! command -v tree-sitter >/dev/null 2>&1; then
+    echo "📥 Installing Tree-sitter CLI (${ARCH})..."
+    OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+    TS_OS="linux"
+    if [ "$OS" = "darwin" ]; then
+        TS_OS="macos"
+    fi
+
+    TS_ARCH="x64"
+    if [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ]; then
+        TS_ARCH="arm64"
+    fi
+
+    TEMP_DIR=$(mktemp -d)
+    if curl -sL --fail "https://github.com/tree-sitter/tree-sitter/releases/download/${TS_VERSION}/tree-sitter-cli-${TS_OS}-${TS_ARCH}.zip" -o "$TEMP_DIR/tree-sitter.zip"; then
+        unzip -q "$TEMP_DIR/tree-sitter.zip" -d "$TEMP_DIR"
+        mkdir -p "$HOME/.local/bin"
+        cp "$TEMP_DIR/tree-sitter" "$HOME/.local/bin/"
+        chmod +x "$HOME/.local/bin/tree-sitter"
+        export PATH="$HOME/.local/bin:$PATH"
+        echo "✅ Tree-sitter CLI version ${TS_VERSION} installed successfully."
+    else
+        echo "⚠️ Failed to download Tree-sitter CLI pre-built binary."
+    fi
+    rm -rf "$TEMP_DIR"
+fi
+
+# 6. Install Oh My Zsh and plugins (non-interactive)
 if [ ! -d "$HOME/.oh-my-zsh" ]; then
     echo "🚀 Installing Oh My Zsh..."
     RUNZSH=no CHSH=no sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
@@ -183,7 +212,7 @@ if [ ! -d "$ZSH_CUSTOM/plugins/zsh-syntax-highlighting" ]; then
     git clone https://github.com/zsh-users/zsh-syntax-highlighting.git "$ZSH_CUSTOM/plugins/zsh-syntax-highlighting"
 fi
 
-# 6. Copy configuration files (avoiding broken symlinks in transient containers)
+# 7. Copy configuration files (avoiding broken symlinks in transient containers)
 echo "📋 Copying configuration files..."
 mkdir -p "$HOME/.config"
 
@@ -210,7 +239,7 @@ if [ -d "$REPO_DIR/home" ]; then
     done
 fi
 
-# 7. Bootstrap Neovim plugins
+# 8. Bootstrap Neovim plugins
 if command -v nvim >/dev/null 2>&1; then
     echo "⚡ Bootstrapping Neovim plugins (vim.pack)..."
     nvim --headless "+PackRevert" +qa || true
