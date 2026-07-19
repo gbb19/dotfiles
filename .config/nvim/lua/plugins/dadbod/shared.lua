@@ -47,7 +47,8 @@ local adapters = {
 --- @param db_url string
 --- @return string|nil  "postgres" | "mysql" | "sqlite" | nil
 function M.get_adapter(db_url)
-  local scheme = (db_url:match("^([%w%+%-]+)://") or ""):lower()
+  local url_str = type(db_url) == "table" and (db_url.url or db_url[1] or "") or tostring(db_url)
+  local scheme = (url_str:match("^([%w%+%-]+)://") or ""):lower()
   if scheme == "postgresql" or scheme == "postgres" then return "postgres"
   elseif scheme == "mysql"  or scheme == "mariadb"  then return "mysql"
   elseif scheme == "sqlite" or scheme == "sqlite3"  then return "sqlite"
@@ -165,6 +166,7 @@ end
 --- @param bufnr integer|nil
 --- @param on_done function
 function M.fetch_columns_async(db_url, table_name, bufnr, on_done)
+  db_url = type(db_url) == "table" and (db_url.url or db_url[1] or "") or tostring(db_url)
   if type(bufnr) == "function" then
     on_done = bufnr
     bufnr = vim.api.nvim_get_current_buf()
@@ -222,6 +224,7 @@ end
 --- @param bufnr integer|nil
 --- @param on_done function
 function M.fetch_tables_async(db_url, bufnr, on_done)
+  db_url = type(db_url) == "table" and (db_url.url or db_url[1] or "") or tostring(db_url)
   if type(bufnr) == "function" then
     on_done = bufnr
     bufnr = vim.api.nvim_get_current_buf()
@@ -481,6 +484,7 @@ end
 
 --- Build CLI command for executing query based on database adapter with strict error stop flags.
 function M.build_cli_cmd(db_url)
+  db_url = type(db_url) == "table" and (db_url.url or db_url[1] or "") or tostring(db_url)
   local adapter = M.get_adapter(db_url)
   if adapter == "postgres" then
     return { "psql", "-v", "ON_ERROR_STOP=1", db_url }

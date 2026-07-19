@@ -56,7 +56,7 @@ end
 function M.show_table_detail()
   local bufnr = vim.api.nvim_get_current_buf()
   local db_url = vim.b[bufnr].db
-  if not db_url or db_url == "" then
+  if not db_url or db_url == "" or (type(db_url) == "table" and not next(db_url)) then
     require("core.utils").notify("db_no_connection")
     return
   end
@@ -401,8 +401,9 @@ vim.api.nvim_create_autocmd("User", {
     --   mysql://user@host/mydb?charset=utf8 →  mydb           (path before ?)
     --   sqlite:///home/user/app.db          →  app.db         (last path segment)
     local db_url = vim.b.db or ""
-    local label = db_url:match("[?&]service=([^&#]+)")  -- service= anywhere in query string
-      or db_url:match("^[^?#]*/([^/?#]+)")              -- last path segment before ? or #
+    local url_str = type(db_url) == "table" and (db_url.url or db_url[1] or "") or tostring(db_url)
+    local label = url_str:match("[?&]service=([^&#]+)")  -- service= anywhere in query string
+      or url_str:match("^[^?#]*/([^/?#]+)")              -- last path segment before ? or #
       or "db"
 
     _query_handles[file_path] = fidget_progress.handle.create({
@@ -598,13 +599,14 @@ local function setup_sql_buffer(args)
       return
     end
 
-    local db_url = vim.b[bufnr].db or ""
-    if db_url == "" then
+    local db_url = vim.b[bufnr].db
+    if not db_url or db_url == "" or (type(db_url) == "table" and not next(db_url)) then
       require("core.utils").notify("db_no_connection")
       return
     end
 
-    local is_prod = db_url:match("prod") or db_url:match("production")
+    local url_str = type(db_url) == "table" and (db_url.url or db_url[1] or "") or tostring(db_url)
+    local is_prod = url_str:match("prod") or url_str:match("production")
     local function execute()
       vim.cmd("vertical '<,'>DB")
     end

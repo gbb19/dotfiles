@@ -32,16 +32,23 @@ vim.api.nvim_create_user_command("PackClean", function()
     if f then
       local content = f:read("*a")
       f:close()
-      for pack_add_block in content:gmatch("pack%.add%s*(%b())") do
-        for url in pack_add_block:gmatch('["\'](https://[^"\']+)["\']') do
+      local function parse_block(block)
+        for url in block:gmatch('["\'](https://[^"\']+)["\']') do
           local name = url:match("([^/]+)$"):gsub("%.git$", "")
           if name then
             declared[name] = true
           end
         end
-        for name in pack_add_block:gmatch('name%s*=%s*["\']([%w%-_%.]+)["\']') do
+        for name in block:gmatch('name%s*=%s*["\']([%w%-_%.]+)["\']') do
           declared[name] = true
         end
+      end
+
+      for pack_add_block in content:gmatch("pack%.add%s*(%b())") do
+        parse_block(pack_add_block)
+      end
+      for pack_add_block in content:gmatch("pack%.add%s*(%b{})") do
+        parse_block(pack_add_block)
       end
     end
   end
@@ -223,8 +230,15 @@ vim.api.nvim_create_user_command("LoadEnv", function(opts)
     if not line:match("^%s*#") and line:match("=") then
       local key, val = line:match("^%s*([^=%s]+)%s*=%s*(.-)%s*$")
       if key and val then
-        -- Strip matching paired quotes only ("..." or '...')
-        val = val:match('^"(.*)"$') or val:match("^'(.*)'$") or val
+        -- Check if value is quoted
+        local quote = val:match("^([\"'])")
+        if quote then
+          -- Extract up to the matching closing quote
+          val = val:match("^" .. quote .. "(.-)" .. quote) or val
+        else
+          -- Strip trailing comments if unquoted
+          val = val:match("^([^#]-)%s*$") or val
+        end
         vim.env[key] = val
       end
     end
