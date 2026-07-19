@@ -45,6 +45,7 @@ vim.api.nvim_create_autocmd({ "BufReadPre", "BufNewFile" }, {
     require("plugins.treesitter")
     require("plugins.treesitter-context")
     require("plugins.surround")
+    require("plugins.render-markdown")
   end,
   once = true,
 })
@@ -78,15 +79,6 @@ vim.api.nvim_create_autocmd("FileType", {
   once = true,
 })
 
--- Lazy load markdown rendering only for markdown files
-vim.api.nvim_create_autocmd("FileType", {
-  group = vim.api.nvim_create_augroup("LazyMarkdown", { clear = true }),
-  pattern = "markdown",
-  callback = function()
-    require("plugins.render-markdown")
-  end,
-  once = true,
-})
 -- Lazy load which-key after UI starts up (simulates VeryLazy)
 vim.api.nvim_create_autocmd("VimEnter", {
   group = vim.api.nvim_create_augroup("LazyWhichKey", { clear = true }),
