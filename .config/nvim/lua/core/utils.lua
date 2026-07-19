@@ -297,8 +297,11 @@ function M.rename_current_buffer()
     vim.bo[bufnr].buflisted = not is_dbout
 
     if is_dbout then
-      -- Update dadbod internals so rerun works
-      vim.cmd(string.format("call setbufvar(%d, 'db', extend(getbufvar(%d, 'db', {}), {'output': '%s'}))", bufnr, bufnr, new_path))
+      local db = vim.b[bufnr].db or {}
+      if type(db) == "table" then
+        db.output = new_path
+        vim.b[bufnr].db = db
+      end
     else
       if not has_file then
         vim.cmd("write")

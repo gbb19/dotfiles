@@ -531,8 +531,11 @@ vim.api.nvim_create_autocmd("User", {
     -- Point history tracker at the subdir so [b/]b sees only results from this SQL file
     require("plugins.dadbod.history").last_dbout_dir = subdir
 
-    -- Update db.output so rerun (key 'R') works
-    vim.cmd(string.format("call setbufvar(%d, 'db', extend(getbufvar(%d, 'db', {}), {'output': '%s'}))", bufnr, bufnr, new_path))
+    local db = vim.b[bufnr].db or {}
+    if type(db) == "table" then
+      db.output = new_path
+      vim.b[bufnr].db = db
+    end
 
     -- Save query execution time to buffer variable and refresh winbar
     local db_info = vim.b[bufnr].db or {}
