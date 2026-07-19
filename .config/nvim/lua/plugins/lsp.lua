@@ -377,59 +377,6 @@ vim.api.nvim_create_autocmd("LspAttach", {
   end,
 })
 
--- Custom LSP hover handler to clean markdown block tags and set buffer syntax directly
-local orig_hover_handler = vim.lsp.handlers["textDocument/hover"]
-vim.lsp.handlers["textDocument/hover"] = function(err, result, ctx, config)
-  config = config or {}
-  config.border = "rounded"
-
-  if not result or not result.contents then
-    return orig_hover_handler(err, result, ctx, config)
-  end
-
-  local extracted_lang = nil
-
-  -- Recursive function to clean code fences and extract language
-  local function clean_contents(contents)
-    if type(contents) == "string" then
-      -- Match ```lang\n<code>\n```
-      local lang, code = contents:match("^```(%w+)\n(.-)\n```$")
-      if code and lang then
-        extracted_lang = lang
-        return code
-      end
-      -- Fallback match for just starting with fence
-      local lang2, code2 = contents:match("^```(%w+)\n(.*)")
-      if code2 and lang2 then
-        extracted_lang = lang2
-        code2 = code2:gsub("\n```$", ""):gsub("\n```\n$", "")
-        return code2
-      end
-    elseif type(contents) == "table" then
-      if contents.value then
-        contents.value = clean_contents(contents.value)
-      else
-        for i, v in ipairs(contents) do
-          contents[i] = clean_contents(v)
-        end
-      end
-    end
-    return contents
-  end
-
-  -- Clean contents in-place
-  result.contents = clean_contents(result.contents)
-
-  local fbuf, fwin = orig_hover_handler(err, result, ctx, config)
-
-  if fwin and fbuf and extracted_lang then
-    -- Override filetype to trigger proper treesitter syntax highlighting for the language
-    vim.bo[fbuf].filetype = extracted_lang
-  end
-
-  return fbuf, fwin
-end
-
 -- Diagnostic navigation keymaps (Global)
 vim.keymap.set("n", "[d", function()
   vim.diagnostic.jump({ count = -1 })
