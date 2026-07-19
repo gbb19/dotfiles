@@ -84,9 +84,54 @@ end
 --- @param alias string
 --- @return string  full table name (or alias as-is if not found)
 function M.resolve_alias_in_buf(bufnr, alias)
-  local lines   = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+  -- 1. Get the current cursor position in the active window (if it is displaying this buffer)
+  local cursor_row = 1
+  local win = vim.api.nvim_get_current_win()
+  if vim.api.nvim_win_is_valid(win) and vim.api.nvim_win_get_buf(win) == bufnr then
+    cursor_row = vim.api.nvim_win_get_cursor(win)[1]
+  end
+
+  local total_lines = vim.api.nvim_buf_line_count(bufnr)
+
+  local function is_empty_or_comment(line)
+    local trimmed = vim.trim(line)
+    return trimmed == "" or vim.startswith(trimmed, "--") or vim.startswith(trimmed, "/*")
+  end
+
+  local function has_valid_semicolon(line)
+    local trimmed = vim.trim(line)
+    return vim.endswith(trimmed, ";")
+  end
+
+  -- Search backwards for block start boundary
+  local start_line = cursor_row
+  while start_line > 1 do
+    local prev_line = vim.api.nvim_buf_get_lines(bufnr, start_line - 2, start_line - 1, false)[1]
+    if not prev_line or is_empty_or_comment(prev_line) or has_valid_semicolon(prev_line) then
+      break
+    end
+    start_line = start_line - 1
+  end
+
+  -- Search forwards for block end boundary
+  local end_line = cursor_row
+  while end_line < total_lines do
+    local curr_line = vim.api.nvim_buf_get_lines(bufnr, end_line - 1, end_line, false)[1]
+    if curr_line and has_valid_semicolon(curr_line) then
+      break
+    end
+    local next_line = vim.api.nvim_buf_get_lines(bufnr, end_line, end_line + 1, false)[1]
+    if not next_line or is_empty_or_comment(next_line) then
+      break
+    end
+    end_line = end_line + 1
+  end
+
+  -- 2. Read only the local SQL block lines
+  local lines = vim.api.nvim_buf_get_lines(bufnr, start_line - 1, end_line, false)
   local content = table.concat(lines, "\n")
 
+  -- 3. Match alias definitions in the local block
   -- "schema.table AS alias"  (case-insensitive AS)
   for tbl, al in content:gmatch("([%w_\"][%w_%.%-\"]*)%s+[Aa][Ss]%s+([%w_]+)") do
     if al == alias then return tbl end
