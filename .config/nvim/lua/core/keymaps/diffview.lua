@@ -45,12 +45,12 @@ end
 local _branch_cache = {}
 
 local function git_root()
-  local root = vim.trim(vim.fn.system("git rev-parse --show-toplevel 2>/dev/null"))
+  local root = vim.trim(vim.fn.system({ "git", "rev-parse", "--show-toplevel" }))
   return (vim.v.shell_error == 0 and root ~= "") and root or nil
 end
 
 local function current_branch()
-  local br = vim.trim(vim.fn.system("git rev-parse --abbrev-ref HEAD 2>/dev/null"))
+  local br = vim.trim(vim.fn.system({ "git", "rev-parse", "--abbrev-ref", "HEAD" }))
   return (vim.v.shell_error == 0 and br ~= "") and br or nil
 end
 
@@ -182,15 +182,19 @@ local function open_line_feature_diff()
     return
   end
 
-  local git_root = vim.trim(vim.fn.system("git rev-parse --show-toplevel 2>/dev/null"))
+  local git_root = vim.trim(vim.fn.system({ "git", "rev-parse", "--show-toplevel" }))
   if vim.v.shell_error ~= 0 or git_root == "" then
     utils.notify("git_not_repo")
     return
   end
 
   local line = vim.api.nvim_win_get_cursor(0)[1]
-  local cmd = string.format("git blame -L %d,%d --porcelain %s 2>/dev/null", line, line, vim.fn.shellescape(file))
-  local blame_out = vim.fn.system(cmd)
+  local blame_out = vim.fn.system({
+    "git", "blame",
+    "-L", string.format("%d,%d", line, line),
+    "--porcelain",
+    file
+  })
   if vim.v.shell_error ~= 0 or blame_out == "" then
     utils.notify("git_blame_failed")
     return
@@ -213,10 +217,10 @@ local function open_line_feature_diff()
   -- Filter base branches to only those that exist and contain the commit
   local candidate_branches = {}
   for _, br in ipairs(base_branches) do
-    local exists = vim.trim(vim.fn.system("git rev-parse --verify " .. br .. " 2>/dev/null")) ~= ""
-    if exists then
-      local is_ancestor = vim.trim(vim.fn.system(string.format("git merge-base --is-ancestor %s %s 2>/dev/null && echo 'yes'", commit, br))) == "yes"
-      if is_ancestor then
+    vim.fn.system({ "git", "rev-parse", "--verify", br })
+    if vim.v.shell_error == 0 then
+      vim.fn.system({ "git", "merge-base", "--is-ancestor", commit, br })
+      if vim.v.shell_error == 0 then
         table.insert(candidate_branches, br)
       end
     end
@@ -235,7 +239,8 @@ local function open_line_feature_diff()
   local target_branch = candidate_branches[1]
 
   -- Check if the commit itself is a merge commit
-  local is_merge = vim.trim(vim.fn.system("git rev-parse --verify " .. commit .. "^2 2>/dev/null")) ~= ""
+  vim.fn.system({ "git", "rev-parse", "--verify", commit .. "^2" })
+  local is_merge = vim.v.shell_error == 0
   if is_merge then
     utils.notify("git_open_merge", string.format("%s (merged in %s)", commit:sub(1, 8), target_branch))
     vim.cmd("DiffviewOpen " .. commit .. "^!")
@@ -243,7 +248,8 @@ local function open_line_feature_diff()
   end
 
   -- Check if the commit is in the first-parent history of the target branch
-  local is_first_parent = vim.fn.system(string.format("git rev-list --first-parent %s 2>/dev/null | grep -F -x %s", target_branch, commit)) ~= ""
+  local first_parent_list = vim.fn.system({ "git", "rev-list", "--first-parent", target_branch })
+  local is_first_parent = vim.v.shell_error == 0 and first_parent_list:find(commit, 1, true) ~= nil
   if is_first_parent then
     utils.notify("git_open_commit", string.format("%s (found on %s first-parent)", commit:sub(1, 8), target_branch))
     vim.cmd("DiffviewOpen " .. commit .. "^!")
@@ -251,9 +257,10 @@ local function open_line_feature_diff()
   end
 
   -- If not, find the oldest first-parent ancestor of commit H on target_branch (the merge commit)
+  local escaped_branch = vim.fn.shellescape(target_branch)
   local find_merge_cmd = string.format(
     "(git rev-list %s..%s --ancestry-path 2>/dev/null | cat -n; git rev-list %s..%s --first-parent 2>/dev/null | cat -n) | sort -k2 -s | uniq -f1 -d | sort -n | tail -1 | cut -f2",
-    commit, target_branch, commit, target_branch
+    commit, escaped_branch, commit, escaped_branch
   )
   local merge_commit = vim.trim(vim.fn.system(find_merge_cmd))
   if merge_commit ~= "" then
