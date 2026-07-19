@@ -6,12 +6,10 @@ vim.pack.add({
   "https://github.com/mfussenegger/nvim-dap",
   "https://github.com/rcarriga/nvim-dap-ui",
   "https://github.com/nvim-neotest/nvim-nio",
-  "https://github.com/theHamsta/nvim-dap-virtual-text",
 })
 
 local dap_ok, dap = pcall(require, "dap")
 local dapui_ok, dapui = pcall(require, "dapui")
-local virtual_text_ok, virtual_text = pcall(require, "nvim-dap-virtual-text")
 
 if dap_ok and dapui_ok then
   -- Patch nvim-dap to support VS Code preLaunchTask using Overseer
@@ -64,28 +62,6 @@ if dap_ok and dapui_ok then
       }
     }
   })
-
-  -- Setup modern inline virtual text (Premium UX displaying variables right next to code)
-  if virtual_text_ok then
-    virtual_text.setup({
-      enabled = true,
-      enabled_commands = true,
-      highlight_changed_variables = true,
-      highlight_new_as_changed = true,
-      show_stop_reason = true,
-      commented = true, -- Prefix virtual text with comment structure to keep it clean
-      only_first_definition = false,
-      all_references = true,
-      display_callback = function(variable, buf, stackframe, node, options)
-        if options.virt_text_pos == 'inline' then
-          return ' = ' .. variable.value
-        else
-          return variable.name .. ' = ' .. variable.value
-        end
-      end,
-      virt_text_pos = 'eol',
-    })
-  end
 
   -- Automatically open/close DAP UI panels when debugging starts/ends
   dap.listeners.before.attach.dapui_config = function()
