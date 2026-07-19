@@ -31,6 +31,7 @@ if ok then
       left_pad = 0,
       right_pad = 0,
       width = "block",
+      language = false,
     },
   })
 
