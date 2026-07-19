@@ -7,24 +7,6 @@ if ts_ok then
     install_dir = install_dir,
   })
 
-  local ensure_installed = require("languages").treesitter_parsers
-
-  local config = require("nvim-treesitter.config")
-  local installed = config.get_installed()
-
-  local to_install = {}
-  for _, lang in ipairs(ensure_installed) do
-    if not vim.list_contains(installed, lang) then
-      table.insert(to_install, lang)
-    end
-  end
-
-  if #to_install > 0 then
-    vim.schedule(function()
-      pcall(vim.cmd, "TSInstall " .. table.concat(to_install, " "))
-    end)
-  end
-
   vim.api.nvim_create_autocmd("FileType", {
     group = vim.api.nvim_create_augroup("TreesitterCore", { clear = true }),
     callback = function(args)
