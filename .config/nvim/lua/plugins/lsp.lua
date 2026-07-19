@@ -338,6 +338,7 @@ vim.api.nvim_create_autocmd("LspAttach", {
 
           if #items == 1 then
             local item = items[1]
+            require("core.layout").jump_to_normal_window()
             vim.cmd("normal! m'")
             vim.cmd("edit " .. vim.fn.fnameescape(item.filename))
             vim.api.nvim_win_set_cursor(0, { item.lnum, item.col - 1 })
@@ -345,6 +346,7 @@ vim.api.nvim_create_autocmd("LspAttach", {
             if not has_custom then
               -- Fallback: jump to the first library definition directly if no custom types exist
               local item = items[1]
+              require("core.layout").jump_to_normal_window()
               vim.cmd("normal! m'")
               vim.cmd("edit " .. vim.fn.fnameescape(item.filename))
               vim.api.nvim_win_set_cursor(0, { item.lnum, item.col - 1 })
