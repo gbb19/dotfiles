@@ -5,7 +5,7 @@ vim.pack.add({ "https://github.com/windwp/nvim-autopairs" })
 local ok, autopairs = pcall(require, "nvim-autopairs")
 if ok then
   autopairs.setup({
-    check_ts = false,                  -- Disabled Treesitter integration as Treesitter is not loaded
+    check_ts = true,                   -- Enable Treesitter integration as Treesitter is loaded
     enable_check_bracket_line = true,  -- Don't add pairs if it already has a closing bracket on the line
   })
 end
