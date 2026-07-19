@@ -18,6 +18,9 @@ local languages = require("languages")
 local utils = require("core.utils")
 
 -- Add lspconfig, blink.cmp, and mason using built-in vim.pack
+-- Prepend Mason bin to PATH so LSP executables installed via Mason are discoverable
+vim.env.PATH = vim.fn.stdpath("data") .. "/mason/bin:" .. vim.env.PATH
+
 vim.pack.add({
   "https://github.com/neovim/nvim-lspconfig",
   -- Pin blink.cmp to stable v1.x series to use prebuilt binaries

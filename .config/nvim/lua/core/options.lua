@@ -58,6 +58,8 @@ vim.opt.exrc = true    -- Enable project-local config (.nvim.lua)
 vim.opt.undofile = true -- Persist undo history across sessions (stored in ~/.local/state/nvim/undo/)
 vim.opt.sessionoptions = "blank,buffers,curdir,folds,help,tabpages,winsize,winpos,terminal,localoptions"
 vim.opt.autoread = true -- Automatically reload files changed on disk
+vim.opt.spell     = true
+vim.opt.spelllang = { "en" }
 
 
 -- Disable legacy system providers (increases startup speed and cleans checkhealth)
@@ -66,6 +68,4 @@ vim.g.loaded_perl_provider = 0
 vim.g.loaded_python3_provider = 0
 vim.g.loaded_ruby_provider = 0
 
--- Prepend Mason bin directory to PATH so conform, nvim-lint, and other plugins can find binaries
-vim.env.PATH = vim.fn.stdpath("data") .. "/mason/bin:" .. vim.env.PATH
 

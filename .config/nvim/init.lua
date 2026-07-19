@@ -39,7 +39,6 @@ vim.api.nvim_create_autocmd({ "BufReadPre", "BufNewFile" }, {
   callback = function()
     require("plugins.fidget")
     require("plugins.conform")
-    require("plugins.lint")
     require("plugins.gitsigns")
     require("plugins.bufferline")
     require("plugins.lsp")
