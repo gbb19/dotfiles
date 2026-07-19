@@ -5,12 +5,18 @@ vim.pack.add({ "https://github.com/akinsho/bufferline.nvim" })
 -- Helper to safely switch buffers when current window is locked with winfixbuf
 local function safe_buffer_switch(bufnr)
   if vim.wo.winfixbuf then
+    local moved = false
     -- Move focus to a non-winfixbuf, non-floating window first
     for _, win in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
       if not vim.wo[win].winfixbuf and vim.api.nvim_win_get_config(win).relative == "" then
         vim.api.nvim_set_current_win(win)
+        moved = true
         break
       end
+    end
+    if not moved then
+      vim.cmd("wincmd s")
+      vim.wo.winfixbuf = false
     end
   end
   vim.cmd("buffer " .. bufnr)
@@ -18,11 +24,17 @@ end
 
 local function safe_buffer_cycle(cmd)
   if vim.wo.winfixbuf then
+    local moved = false
     for _, win in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
       if not vim.wo[win].winfixbuf and vim.api.nvim_win_get_config(win).relative == "" then
         vim.api.nvim_set_current_win(win)
+        moved = true
         break
       end
+    end
+    if not moved then
+      vim.cmd("wincmd s")
+      vim.wo.winfixbuf = false
     end
   end
   vim.cmd(cmd)
@@ -52,6 +64,9 @@ if ok then
         },
       },
       custom_filter = function(buf_number)
+        if not buf_number or not vim.api.nvim_buf_is_valid(buf_number) then
+          return false
+        end
         -- Filter out dbout result buffers from bufferline entirely
         return vim.bo[buf_number].filetype ~= "dbout"
       end,
