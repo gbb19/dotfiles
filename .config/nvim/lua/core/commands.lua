@@ -155,13 +155,9 @@ vim.api.nvim_create_user_command("PackLspInstall", function(opts)
 
   -- Get currently installed Treesitter parsers
   local to_install_parsers = {}
-  local ts_ok, ts = pcall(require, "nvim-treesitter")
-  if ts_ok then
-    local installed_parsers = ts.get_installed()
-    for _, p in ipairs(parsers) do
-      if not vim.list_contains(installed_parsers, p) then
-        table.insert(to_install_parsers, p)
-      end
+  for _, p in ipairs(parsers) do
+    if not pcall(vim.treesitter.language.inspect, p) then
+      table.insert(to_install_parsers, p)
     end
   end
 
