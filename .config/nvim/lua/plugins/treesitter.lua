@@ -7,19 +7,7 @@ if ts_ok then
     install_dir = install_dir,
   })
 
-  local ensure_installed = {
-    "typescript",
-    "tsx",
-    "javascript",
-    "lua",
-    "vim",
-    "vimdoc",
-    "markdown",
-    "markdown_inline",
-    "json",
-    "graphql",
-    "sql",
-  }
+  local ensure_installed = require("languages").treesitter_parsers
 
   local config = require("nvim-treesitter.config")
   local installed = config.get_installed()

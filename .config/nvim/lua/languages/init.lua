@@ -6,17 +6,21 @@
 ---@class LanguageConfig
 ---@field lsp? { servers: string[], mason?: string[] }
 ---@field formatters? table<string, any>
+---@field treesitter? string[]
 
 ---@class LanguageRegistry
 ---@field lsp_servers string[]   All LSP server names to enable
 ---@field mason_servers string[] Servers for Mason to auto-install
+---@field dap_servers string[]   DAP servers to auto-install
 ---@field formatters table<string, any> conform-compatible formatters_by_ft
+---@field treesitter_parsers string[] All Treesitter parser names to install
 
 local M = {
-  lsp_servers   = {},
-  mason_servers = {},
-  dap_servers   = {},
-  formatters    = {},
+  lsp_servers        = {},
+  mason_servers      = {},
+  dap_servers        = {},
+  formatters         = {},
+  treesitter_parsers = {},
 }
 
 local utils = require("core.utils")
@@ -55,6 +59,9 @@ for _, filepath in ipairs(files) do
       end
       if config.formatters then
         M.formatters = vim.tbl_extend("force", M.formatters, config.formatters)
+      end
+      if config.treesitter then
+        vim.list_extend(M.treesitter_parsers, config.treesitter)
       end
     else
       utils.notify("language_invalid_module", name)

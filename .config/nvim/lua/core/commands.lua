@@ -87,6 +87,7 @@ vim.api.nvim_create_user_command("PackLspInstall", function(opts)
 
   local servers = {}
   local daps = {}
+  local parsers = {}
 
   -- Parse args: split on whitespace and trim each token
   local targets = {}
@@ -95,7 +96,7 @@ vim.api.nvim_create_user_command("PackLspInstall", function(opts)
   end
 
   if #targets > 0 then
-    -- Load each specified language module and aggregate servers/daps
+    -- Load each specified language module and aggregate servers/daps/parsers
     for _, target in ipairs(targets) do
       local ok, config = pcall(require, "languages." .. target)
       if not ok or type(config) ~= "table" then
@@ -108,17 +109,16 @@ vim.api.nvim_create_user_command("PackLspInstall", function(opts)
       if config.dap and config.dap.mason then
         vim.list_extend(daps, config.dap.mason)
       end
+      if config.treesitter then
+        vim.list_extend(parsers, config.treesitter)
+      end
     end
   else
-    -- No args: install all configured servers and DAPs
+    -- No args: install all configured servers, DAPs, and parsers
     local languages = require("languages")
     servers = languages.mason_servers
     daps = languages.dap_servers or {}
-  end
-
-  if (#servers == 0) and (#daps == 0) then
-    utils.notify("lsp_install_no_servers")
-    return
+    parsers = languages.treesitter_parsers or {}
   end
 
   -- Get currently installed LSP servers
@@ -146,8 +146,20 @@ vim.api.nvim_create_user_command("PackLspInstall", function(opts)
     end
   end
 
-  if #to_install_lsp == 0 and #to_install_dap == 0 then
-    utils.notify("lsp_install_all_already", string.format("(%d/%d)", #servers + #daps, #servers + #daps))
+  -- Get currently installed Treesitter parsers
+  local to_install_parsers = {}
+  local ts_config_ok, ts_config = pcall(require, "nvim-treesitter.config")
+  if ts_config_ok then
+    local installed_parsers = ts_config.get_installed()
+    for _, p in ipairs(parsers) do
+      if not vim.list_contains(installed_parsers, p) then
+        table.insert(to_install_parsers, p)
+      end
+    end
+  end
+
+  if #to_install_lsp == 0 and #to_install_dap == 0 and #to_install_parsers == 0 then
+    utils.notify("lsp_install_all_already", string.format("(%d/%d)", #servers + #daps + #parsers, #servers + #daps + #parsers))
     return
   end
 
@@ -161,6 +173,11 @@ vim.api.nvim_create_user_command("PackLspInstall", function(opts)
   if #to_install_dap > 0 then
     utils.notify("dap_install_starting", table.concat(to_install_dap, ", "))
     vim.cmd("MasonInstall " .. table.concat(to_install_dap, " "))
+  end
+
+  -- Install Treesitter parsers
+  if #to_install_parsers > 0 then
+    vim.cmd("TSInstall " .. table.concat(to_install_parsers, " "))
   end
 end, {
   nargs = "*",

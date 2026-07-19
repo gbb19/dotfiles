@@ -11,4 +11,5 @@ return {
     mason   = { "tailwindcss" },
   },
   formatters = {},
+  treesitter = { "css" },
 }

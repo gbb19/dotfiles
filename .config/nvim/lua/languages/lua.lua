@@ -11,4 +11,5 @@ return {
   formatters = {
     lua = { "stylua" },
   },
+  treesitter = { "lua", "vim", "vimdoc" },
 }

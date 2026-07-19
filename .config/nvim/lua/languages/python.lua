@@ -12,4 +12,5 @@ return {
     -- Use ruff for formatting (black + isort behavior), falling back to black
     python = { "ruff_format", "black", stop_after_first = true },
   },
+  treesitter = { "python" },
 }

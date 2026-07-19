@@ -13,4 +13,5 @@ return {
     json  = { "prettierd", "prettier", stop_after_first = true },
     jsonc = { "prettierd", "prettier", stop_after_first = true },
   },
+  treesitter = { "json" },
 }

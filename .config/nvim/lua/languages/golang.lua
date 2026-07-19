@@ -12,4 +12,5 @@ return {
     -- gofumpt is a superset of gofmt; run via system PATH (not Mason)
     go = { "gofumpt", stop_after_first = true },
   },
+  treesitter = { "go", "gomod", "gowork", "gosum" },
 }

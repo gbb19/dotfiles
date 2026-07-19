@@ -11,4 +11,5 @@ return {
     servers = { "graphql" },
     mason   = { "graphql" },
   },
+  treesitter = { "graphql" },
 }

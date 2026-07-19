@@ -12,4 +12,5 @@ return {
     -- rustfmt ships with the Rust toolchain (rustup); run via system PATH, not Mason
     rust = { "rustfmt" },
   },
+  treesitter = { "rust" },
 }

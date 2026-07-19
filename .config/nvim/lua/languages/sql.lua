@@ -11,4 +11,5 @@ return {
   formatters = {
     sql = { "sql_formatter" }, -- Installed via npm project-locally or system-wide
   },
+  treesitter = { "sql" },
 }
