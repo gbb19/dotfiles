@@ -21,7 +21,10 @@ end
 local function confirm_prod_action(action_name, callback)
   local bufnr = vim.api.nvim_get_current_buf()
   local db_url = vim.b[bufnr].db or ""
-  
+  if type(db_url) == "table" then
+    db_url = db_url.url or db_url[1] or ""
+  end
+
   local is_prod = db_url:match("prod") or db_url:match("production")
   if not is_prod then
     callback()
@@ -96,6 +99,9 @@ function M.run_sql_block()
   end
 
   local db_url = vim.b[bufnr].db
+  if type(db_url) == "table" then
+    db_url = db_url.url or db_url[1]
+  end
   if not db_url or db_url == "" then
     require("core.utils").notify(status == "failed" and "db_connection_blocked" or "db_no_connection")
     return
@@ -229,6 +235,9 @@ end
 
 --- Runs database CLI utility directly to capture and format raw export output asynchronously.
 local function run_export_cmd_async(db_url, is_json, query, action_title, on_done)
+  if type(db_url) == "table" then
+    db_url = db_url.url or db_url[1]
+  end
   local bufnr = vim.api.nvim_get_current_buf()
   if not db_url or db_url == "" then
     require("core.utils").notify("db_no_connection")
@@ -400,6 +409,9 @@ end
 function M.explain_query(verbose)
   local bufnr = vim.api.nvim_get_current_buf()
   local db_url = vim.b[bufnr].db
+  if type(db_url) == "table" then
+    db_url = db_url.url or db_url[1]
+  end
   if not db_url or db_url == "" then
     require("core.utils").notify("db_no_connection")
     return

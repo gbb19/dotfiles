@@ -18,6 +18,9 @@ if ok then
       sql_formatter = {
         args = function(self, ctx)
           local db_url = vim.b[ctx.buf].db or vim.g.db
+          if type(db_url) == "table" then
+            db_url = db_url.url or db_url[1]
+          end
           local adapter = db_url and require("plugins.dadbod.shared").get_adapter(db_url) or "sql"
           local dialect = "sql"
           if adapter == "postgres" then dialect = "postgresql"

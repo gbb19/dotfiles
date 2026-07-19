@@ -199,22 +199,26 @@ if dap_ok and dapui_ok then
 
       if is_local then
         local port = tonumber(adapter.port)
-        if port then
+        if port and port > 0 and port <= 65535 then
+          local port_str = tostring(port)
           if vim.fn.has("win32") == 1 then
-            -- Windows implementation using PowerShell
-            local cmd = string.format("powershell -Command \"Get-NetTCPConnection -LocalPort %d -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess | ForEach-Object { Stop-Process -Id $_ -Force }\"", port)
-            pcall(vim.fn.system, cmd)
+            pcall(vim.fn.system, {
+              "powershell", "-Command",
+              "Get-NetTCPConnection -LocalPort " .. port_str .. " -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess | ForEach-Object { Stop-Process -Id $_ -Force }",
+            })
           else
-            -- Linux & macOS implementation
-            if vim.fn.executable("fuser") == 1 then
-              pcall(vim.fn.system, string.format("fuser -k -TERM %d/tcp", port))
-            elseif vim.fn.executable("lsof") == 1 then
-              pcall(vim.fn.system, string.format("lsof -t -i tcp:%d | xargs kill -15 2>/dev/null", port))
+            if vim.fn.executable("lsof") == 1 then
+              local out = vim.fn.system({ "lsof", "-t", "-i", "tcp:" .. port_str })
+              for pid in out:gmatch("(%d+)") do
+                pcall(vim.fn.system, { "kill", "-15", pid })
+              end
+            elseif vim.fn.executable("fuser") == 1 then
+              pcall(vim.fn.system, { "fuser", "-k", "-TERM", port_str .. "/tcp" })
             elseif vim.fn.executable("ss") == 1 then
-              local out = vim.fn.system(string.format("ss -lptn 'sport = :%d' 2>/dev/null", port))
+              local out = vim.fn.system({ "ss", "-lptn", "sport = :" .. port_str })
               local pid = out:match("pid=(%d+)")
               if pid then
-                pcall(vim.fn.system, string.format("kill -15 %s 2>/dev/null", pid))
+                pcall(vim.fn.system, { "kill", "-15", pid })
               end
             end
           end
