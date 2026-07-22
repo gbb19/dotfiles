@@ -735,23 +735,34 @@ local function is_dbout_win(win)
   return false
 end
 
+local function is_normal_editor_win(win)
+  if not win or not vim.api.nvim_win_is_valid(win) then return false end
+  local win_config = vim.api.nvim_win_get_config(win)
+  if win_config and win_config.relative and win_config.relative ~= "" then
+    return false
+  end
+  if is_dbout_win(win) then return false end
+  return true
+end
+
 -- Auto-close dbout/explain windows when quitting or closing the last normal window, preventing orphaned dbout windows
 vim.api.nvim_create_autocmd("QuitPre", {
   group = group,
   callback = function()
     local wins = vim.api.nvim_list_wins()
-    local non_dbout_count = 0
+    local normal_count = 0
     local dbout_wins = {}
     for _, win in ipairs(wins) do
       if is_dbout_win(win) then
         table.insert(dbout_wins, win)
-      else
-        non_dbout_count = non_dbout_count + 1
+      elseif is_normal_editor_win(win) then
+        normal_count = normal_count + 1
       end
     end
 
-    if non_dbout_count <= 1 then
+    if normal_count <= 1 then
       for _, w in ipairs(dbout_wins) do
+        pcall(function() vim.wo[w].winfixbuf = false end)
         pcall(vim.api.nvim_win_close, w, true)
       end
     end
@@ -782,21 +793,35 @@ vim.api.nvim_create_autocmd("WinClosed", {
       end
     end
 
-    -- Cleanup orphaned dbout windows if only dbout windows remain
+    -- Cleanup orphaned dbout windows if no normal editor windows remain
     vim.schedule(function()
       local wins = vim.api.nvim_list_wins()
-      local non_dbout_count = 0
+      local normal_count = 0
       local dbout_wins = {}
       for _, w in ipairs(wins) do
         if is_dbout_win(w) then
           table.insert(dbout_wins, w)
-        else
-          non_dbout_count = non_dbout_count + 1
+        elseif is_normal_editor_win(w) then
+          normal_count = normal_count + 1
         end
       end
-      if non_dbout_count == 0 then
+      if normal_count == 0 and #dbout_wins > 0 then
         for _, w in ipairs(dbout_wins) do
+          pcall(function() vim.wo[w].winfixbuf = false end)
           pcall(vim.api.nvim_win_close, w, true)
+        end
+        local remaining = vim.api.nvim_list_wins()
+        if #remaining > 0 then
+          local only_dbout = true
+          for _, w in ipairs(remaining) do
+            if not is_dbout_win(w) then
+              only_dbout = false
+              break
+            end
+          end
+          if only_dbout then
+            pcall(vim.cmd, "quit")
+          end
         end
       end
     end)
