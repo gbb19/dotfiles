@@ -52,14 +52,14 @@ vim.opt.mouse = "a"
 vim.opt.updatetime = 250
 vim.opt.signcolumn = "yes"
 vim.opt.timeoutlen = 300
-vim.opt.cursorline = true  -- Highlight the current line
-vim.opt.pumheight = 10     -- Limit completion menu to 10 items max
-vim.opt.exrc = true    -- Enable project-local config (.nvim.lua)
-vim.opt.undofile = true -- Persist undo history across sessions (stored in ~/.local/state/nvim/undo/)
+vim.opt.cursorline = true -- Highlight the current line
+vim.opt.pumheight = 10    -- Limit completion menu to 10 items max
+vim.opt.exrc = true       -- Enable project-local config (.nvim.lua)
+vim.opt.undofile = true   -- Persist undo history across sessions (stored in ~/.local/state/nvim/undo/)
 vim.opt.sessionoptions = "blank,buffers,curdir,folds,help,tabpages,winsize,winpos,terminal,localoptions"
-vim.opt.autoread = true -- Automatically reload files changed on disk
-vim.opt.spell     = true
-vim.opt.spelllang = { "en" }
+vim.opt.autoread = true   -- Automatically reload files changed on disk
+-- vim.opt.spell     = true
+-- vim.opt.spelllang = { "en" }
 
 
 -- Disable legacy system providers (increases startup speed and cleans checkhealth)
@@ -67,5 +67,3 @@ vim.g.loaded_node_provider = 0
 vim.g.loaded_perl_provider = 0
 vim.g.loaded_python3_provider = 0
 vim.g.loaded_ruby_provider = 0
-
-
