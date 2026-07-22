@@ -239,8 +239,7 @@ local function open_git_branches_picker(opts)
       end
       _branch_preview_timer = vim.defer_fn(function()
         if ctx.picker and not ctx.picker.closed and ctx.buf and vim.api.nvim_buf_is_valid(ctx.buf) then
-          pcall(require("snacks.picker.preview").git_log, ctx)
-          vim.bo[ctx.buf].filetype = "git"
+          pcall(require("snacks.picker.preview").git_show, ctx)
         end
       end, 80)
     end,
