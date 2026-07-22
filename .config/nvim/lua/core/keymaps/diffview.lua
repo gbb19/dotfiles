@@ -90,34 +90,60 @@ local function resolve_base_branch(callback)
 
   local ok, snacks = pcall(require, "snacks")
   if ok and snacks.picker then
-    snacks.picker.git_branches({
-      all = true,
-      cmd_args = { "--sort=-committerdate" },
-      title = "Select Base Branch for Diff (Local First)",
-      transform = function(item)
-        if item.text then
-          local text = item.text
-          local branch = item.branch or ""
-          item.is_remote = not not (text:find("remotes/") or branch:find("^remotes/") or branch:find("^origin/"))
+    snacks.picker({
+      source = "git_branches",
+      title = "Select Base Branch for Diff",
+      finder = function(picker_opts, ctx)
+        local root = ctx:git_root()
+        local items = {}
+
+        -- 1. Local branches (sorted by committerdate: most recent first)
+        local local_out = vim.fn.systemlist({ "git", "-c", "core.quotepath=false", "branch", "--no-color", "-vv", "--sort=-committerdate" })
+        if vim.v.shell_error == 0 then
+          for _, line in ipairs(local_out) do
+            if line ~= "" and not line:find("HEAD%s*%->") then
+              local status, branch = line:match("^(.)%s+(%S+)")
+              if branch then
+                table.insert(items, {
+                  text = branch,
+                  branch = branch,
+                  is_remote = false,
+                  cwd = root,
+                  current = status == "*",
+                })
+              end
+            end
+          end
         end
-        return item
-      end,
-      sort = function(a, b)
-        local a_rem = a.is_remote and 1 or 0
-        local b_rem = b.is_remote and 1 or 0
-        if a_rem ~= b_rem then
-          return a_rem < b_rem
+
+        -- 2. Remote branches (sorted by committerdate: most recent first)
+        local remote_out = vim.fn.systemlist({ "git", "-c", "core.quotepath=false", "branch", "--no-color", "-r", "--sort=-committerdate" })
+        if vim.v.shell_error == 0 then
+          for _, line in ipairs(remote_out) do
+            local trimmed = vim.trim(line)
+            if trimmed ~= "" and not trimmed:find("HEAD%s*%->") then
+              table.insert(items, {
+                text = trimmed,
+                branch = trimmed,
+                is_remote = true,
+                cwd = root,
+                current = false,
+              })
+            end
+          end
         end
-        return 0
+
+        return ctx.filter:filter(items)
       end,
       format = function(item, picker)
+        local a = Snacks.picker.util.align
         local ret = {}
-        if item.is_remote then
-          table.insert(ret, { "[remote] ", "SnacksPickerLabel" })
+        if item.current then
+          table.insert(ret, { a("* ", 2), "SnacksPickerGitBranchCurrent" })
         else
-          table.insert(ret, { "[local]  ", "SnacksPickerLabel" })
+          table.insert(ret, { a("  ", 2) })
         end
-        vim.list_extend(ret, Snacks.picker.format.git_branch(item, picker))
+        table.insert(ret, { item.branch, "SnacksPickerGitBranch" })
         return ret
       end,
       previewers = {
