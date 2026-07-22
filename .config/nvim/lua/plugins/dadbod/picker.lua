@@ -1,3 +1,8 @@
+-- lua/plugins/dadbod/picker.lua
+-- Fuzzy schema searcher and interactive table browser.
+
+local M = {}
+
 local function is_internal_table(schema, name)
   local s = (schema or ""):lower()
   local n = (name or ""):lower()
