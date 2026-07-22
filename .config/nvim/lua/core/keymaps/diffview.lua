@@ -191,7 +191,7 @@ local function resolve_base_branch(callback)
         end
         _diff_branch_preview_timer = vim.defer_fn(function()
           if ctx.picker and not ctx.picker.closed and ctx.buf and vim.api.nvim_buf_is_valid(ctx.buf) then
-            local cmd = { "git", "--no-pager", "show", "--first-parent", "-m", ctx.item.branch }
+            local cmd = { "git", "-c", "core.quotepath=false", "--no-pager", "log", "-n", "15", "--stat", ctx.item.branch }
             pcall(require("snacks.picker.preview").cmd, cmd, ctx, { ft = "git" })
           end
         end, 80)
