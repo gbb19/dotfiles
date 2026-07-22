@@ -76,13 +76,15 @@ snacks.setup({
           -- Map Ctrl-Left and Ctrl-Right to scroll the preview pane horizontally (left and right) in all modes
           ["<M-h>"] = { "preview_scroll_left", mode = { "i", "n" } },
           ["<M-l>"] = { "preview_scroll_right", mode = { "i", "n" } },
+          -- Clear search query inside picker window
+          ["<C-l>"] = { "clear_search", mode = { "i", "n" } },
         },
       },
-      preview = {
-        wo = {
-          wrap = false, -- Disable line wrapping in the preview pane so horizontal scrolling actually works
-        },
-      },
+    },
+    actions = {
+      clear_search = function(picker)
+        picker.input:set("")
+      end,
     },
   },
   notifier = {
@@ -166,9 +168,21 @@ end)
 -- Global search keymaps using Snacks picker
 vim.keymap.set("n", "<leader>ff", function()
   ensure_unfixed_window()
+  local resume_state = require("snacks.picker.resume").state["files"]
+  if vim.v.count == 0 and resume_state ~= nil then
+    Snacks.picker.resume({ source = "files" })
+  else
+    local cwd = vim.fn.fnamemodify(vim.fn.getcwd(), ":p:~"):gsub("/+$", "")
+    Snacks.picker.files({ title = "Files (" .. cwd .. ")" })
+  end
+end, { desc = "Find Files (Resume; [count]=new search)" })
+
+vim.keymap.set("n", "<leader>fF", function()
+  ensure_unfixed_window()
   local cwd = vim.fn.fnamemodify(vim.fn.getcwd(), ":p:~"):gsub("/+$", "")
   Snacks.picker.files({ title = "Files (" .. cwd .. ")" })
-end, { desc = "Find Files" })
+end, { desc = "Find Files (Fresh Search)" })
+
 vim.keymap.set("n", "<leader>ft", function()
   ensure_unfixed_window()
   Snacks.picker.colorschemes()
@@ -250,10 +264,10 @@ end
 
 vim.keymap.set("n", "<leader>fg", function()
   ensure_unfixed_window()
-  local first_time = _grep_last_include == nil
+  local resume_state = require("snacks.picker.resume").state["grep"]
 
-  if vim.v.count == 0 and not first_time then
-    open_grep(_grep_last_include, _grep_last_exclude, _grep_last_search)
+  if vim.v.count == 0 and resume_state ~= nil then
+    Snacks.picker.resume({ source = "grep" })
     return
   end
 
@@ -262,7 +276,11 @@ vim.keymap.set("n", "<leader>fg", function()
     default = _grep_last_include or "",
   }, function(include)
     if include == nil then
-      open_grep(_grep_last_include or "", _grep_last_exclude or "", _grep_last_search)
+      if resume_state ~= nil then
+        Snacks.picker.resume({ source = "grep" })
+      else
+        open_grep(_grep_last_include or "", _grep_last_exclude or "", _grep_last_search)
+      end
       return
     end
     _grep_last_include = include
@@ -276,7 +294,13 @@ vim.keymap.set("n", "<leader>fg", function()
       open_grep(_grep_last_include, exclude, _grep_last_search)
     end)
   end)
-end, { desc = "Live Grep (resume; [count]=edit filters; C-c/empty in picker=reset)" })
+end, { desc = "Live Grep (Resume; [count]=edit filters)" })
+
+vim.keymap.set("n", "<leader>fG", function()
+  ensure_unfixed_window()
+  reset_grep_filters()
+  Snacks.picker.grep()
+end, { desc = "Live Grep (Fresh Search)" })
 
 vim.keymap.set("n", "<leader>fb", function()
   ensure_unfixed_window()
