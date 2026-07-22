@@ -3,6 +3,8 @@
 
 local M = {}
 
+local shared = require("plugins.dadbod.shared")
+
 -- Registry of active connection-test jobs keyed by bufnr.
 -- Allows us to kill them on :q! so Neovim never hangs waiting for psql.
 local _active_jobs = {}
@@ -153,7 +155,6 @@ end
 function M.test_connection_async(db_url, bufnr, profile_name, opts)
   opts = opts or {}
   local is_auto = opts.is_auto or false
-  local shared = require("plugins.dadbod.shared")
   local adapter = shared.get_adapter(db_url)
 
   if not adapter then
