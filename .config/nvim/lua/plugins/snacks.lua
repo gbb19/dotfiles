@@ -224,17 +224,7 @@ local function open_git_branches_picker(opts)
       table.insert(ret, { item.branch, "SnacksPickerGitBranch" })
       return ret
     end,
-    previewers = {
-      diff = {
-        style = "syntax",
-      },
-    },
-    preview = function(ctx)
-      if ctx.item and ctx.item.branch then
-        ctx.preview:set_title("Branch: " .. ctx.item.branch)
-      end
-      return require("snacks.picker.preview").git_log(ctx)
-    end,
+    preview = "git_log",
   }, opts))
 end
 
