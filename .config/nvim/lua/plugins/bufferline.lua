@@ -82,7 +82,18 @@ end
 vim.keymap.set("n", "[b", function() safe_buffer_cycle("BufferLineCyclePrev") end, { desc = "Prev Buffer" })
 vim.keymap.set("n", "]b", function() safe_buffer_cycle("BufferLineCycleNext") end, { desc = "Next Buffer" })
 
+-- Quick toggle last active buffer
+vim.keymap.set("n", "<leader><leader>", function() safe_buffer_cycle("b#") end, { desc = "Toggle Last Active Buffer" })
+
+-- Direct jump to Buffer 1..9
+for i = 1, 9 do
+  vim.keymap.set("n", "<leader>" .. i, function()
+    safe_buffer_cycle("BufferLineGoToBuffer " .. i)
+  end, { desc = "Go to Buffer " .. i })
+end
+
 -- Buffer management keymaps (under <leader>b)
 vim.keymap.set("n", "<leader>bd", function() Snacks.bufdelete() end, { desc = "Delete Buffer" })
 vim.keymap.set("n", "<leader>bo", "<cmd>BufferLineCloseOthers<cr>", { desc = "Close Other Buffers" })
 vim.keymap.set("n", "<leader>bp", "<cmd>BufferLineTogglePin<cr>", { desc = "Toggle Pin Buffer" })
+vim.keymap.set("n", "<leader>bj", "<cmd>BufferLinePick<cr>", { desc = "Pick Buffer by Letter" })

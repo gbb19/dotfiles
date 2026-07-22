@@ -280,10 +280,68 @@ vim.keymap.set("n", "<leader>fG", function()
   Snacks.picker.grep()
 end, { desc = "Live Grep (Fresh Search)" })
 
+local function is_buffer_pinned(bufnr)
+  local g_ok, groups = pcall(require, "bufferline.groups")
+  if g_ok and groups and type(groups._is_pinned) == "function" then
+    if groups._is_pinned({ id = bufnr }) then
+      return true
+    end
+  end
+  local pinned_g = vim.g.BufferlinePinnedBuffers
+  if type(pinned_g) == "string" and pinned_g ~= "" then
+    local path = vim.api.nvim_buf_get_name(bufnr)
+    for _, p in ipairs(vim.split(pinned_g, ",")) do
+      if p == path or p == tostring(bufnr) then
+        return true
+      end
+    end
+  end
+  return false
+end
+
 vim.keymap.set("n", "<leader>fb", function()
   ensure_unfixed_window()
-  Snacks.picker.buffers()
-end, { desc = "Find Buffers" })
+  Snacks.picker.buffers({
+    sort_lastused = true,
+    transform = function(item)
+      item.is_pinned = is_buffer_pinned(item.buf)
+      return item
+    end,
+    sort = function(a, b)
+      local a_pin = a.is_pinned and 1 or 0
+      local b_pin = b.is_pinned and 1 or 0
+      if a_pin ~= b_pin then
+        return a_pin > b_pin
+      end
+      return (a.lastused or 0) > (b.lastused or 0)
+    end,
+    format = function(item, picker)
+      local ret = {}
+      if item.is_pinned then
+        table.insert(ret, { "[P] ", "SnacksPickerLabel" })
+      else
+        table.insert(ret, { "    ", "SnacksPickerLabel" })
+      end
+      vim.list_extend(ret, Snacks.picker.format.filename(item, picker))
+      return ret
+    end,
+    win = {
+      input = {
+        keys = {
+          ["<C-1>"] = { function(p) p.list:view(1) p:action("confirm") end, mode = { "i", "n" } },
+          ["<C-2>"] = { function(p) p.list:view(2) p:action("confirm") end, mode = { "i", "n" } },
+          ["<C-3>"] = { function(p) p.list:view(3) p:action("confirm") end, mode = { "i", "n" } },
+          ["<C-4>"] = { function(p) p.list:view(4) p:action("confirm") end, mode = { "i", "n" } },
+          ["<C-5>"] = { function(p) p.list:view(5) p:action("confirm") end, mode = { "i", "n" } },
+          ["<C-6>"] = { function(p) p.list:view(6) p:action("confirm") end, mode = { "i", "n" } },
+          ["<C-7>"] = { function(p) p.list:view(7) p:action("confirm") end, mode = { "i", "n" } },
+          ["<C-8>"] = { function(p) p.list:view(8) p:action("confirm") end, mode = { "i", "n" } },
+          ["<C-9>"] = { function(p) p.list:view(9) p:action("confirm") end, mode = { "i", "n" } },
+        },
+      },
+    },
+  })
+end, { desc = "Find Buffers (Pinned First + MRU)" })
 vim.keymap.set("n", "<leader>fr", function()
   ensure_unfixed_window()
   Snacks.picker.recent()
