@@ -6,6 +6,8 @@ local M = {}
 -- Registry of active connection-test jobs keyed by bufnr.
 -- Allows us to kill them on :q! so Neovim never hangs waiting for psql.
 local _active_jobs = {}
+-- Track last failed notification timestamp per profile name to prevent notification spam on session restore
+local _last_failed_notify = {}
 
 -- Kill all tracked jobs (called from VimLeavePre and BufDelete)
 local function kill_job(bufnr)
@@ -134,8 +136,11 @@ function M.switch_connection()
       require("plugins.dadbod.tables").clear_cache()
     end)
 
+    -- Reset throttle for this profile on explicit user action
+    _last_failed_notify[choice] = nil
+
     -- Run test connection asynchronously
-    M.test_connection_async(db_url, bufnr, choice)
+    M.test_connection_async(db_url, bufnr, choice, { is_auto = false })
   end)
 end
 
@@ -145,7 +150,10 @@ end
 --- @param db_url string
 --- @param bufnr integer
 --- @param profile_name string
-function M.test_connection_async(db_url, bufnr, profile_name)
+--- @param opts? { is_auto?: boolean }
+function M.test_connection_async(db_url, bufnr, profile_name, opts)
+  opts = opts or {}
+  local is_auto = opts.is_auto or false
   local shared = require("plugins.dadbod.shared")
   local adapter = shared.get_adapter(db_url)
 
@@ -230,12 +238,28 @@ function M.test_connection_async(db_url, bufnr, profile_name)
       vim.b[bufnr].db = nil
       vim.bo[bufnr].omnifunc = ""
 
-      -- Notify failure reason — Lualine shows [failed], notify explains why
-      local err = vim.trim(result.stderr or "")
-      require("core.utils").notify("db_connection_failed", err, {
-        title   = string.format("[%s] Connection failed", profile_name),
-        timeout = 8000,
-      })
+      -- Notify failure reason if:
+      -- 1. Manual trigger (is_auto == false)
+      -- 2. OR Auto trigger (is_auto == true) on current active buffer AND not notified recently (< 30s)
+      local now = os.time()
+      local last_time = _last_failed_notify[profile_name] or 0
+      local is_current = (bufnr == vim.api.nvim_get_current_buf())
+
+      local should_notify = false
+      if not is_auto then
+        should_notify = true
+      elseif is_current and (now - last_time > 30) then
+        should_notify = true
+      end
+
+      if should_notify then
+        _last_failed_notify[profile_name] = now
+        local err = vim.trim(result.stderr or "")
+        require("core.utils").notify("db_connection_failed", err, {
+          title   = string.format("[%s] Connection failed", profile_name),
+          timeout = 8000,
+        })
+      end
     end
 
     -- Refresh statusline to show updated connection status

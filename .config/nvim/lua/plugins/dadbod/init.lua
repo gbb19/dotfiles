@@ -179,7 +179,7 @@ local function auto_bind_connection(bufnr)
         vim.b[bufnr].db_connection_status = "connecting"
         pcall(function() require("lualine").refresh() end)
 
-        require("plugins.dadbod.db").test_connection_async(connection_url, bufnr, default_key)
+        require("plugins.dadbod.db").test_connection_async(connection_url, bufnr, default_key, { is_auto = true })
       end
     end
   end
