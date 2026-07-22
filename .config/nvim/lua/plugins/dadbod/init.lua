@@ -528,9 +528,6 @@ vim.api.nvim_create_autocmd("User", {
     -- Point history tracker at the subdir so [b/]b sees only results from this SQL file
     require("plugins.dadbod.history").last_dbout_dir = subdir
 
-    -- Automatically display/update result buffer in a split window
-    show_result_in_window(new_path, subdir, sql_source_path)
-
     local db = vim.b[bufnr].db or {}
     if type(db) == "table" then
       db.output = new_path
