@@ -74,6 +74,9 @@ WHERE table_schema NOT IN (
     '_timescaledb_config', '_timescaledb_catalog',
     'timescaledb_experimental', 'timescaledb_information'
 )
+AND table_name NOT LIKE '_timescaledb_%'
+AND table_name NOT LIKE '%_columnstore%'
+AND table_name NOT LIKE '%_compressed%'
 ORDER BY table_schema, table_name;
 ]]
   local cmd = { "psql", db_url, "--csv", "-c", query }

@@ -625,10 +625,15 @@ local function setup_sql_buffer(args)
   vim.keymap.set("n", "<leader>rt", M.show_table_detail, vim.tbl_extend("force", opts, { desc = "Show Table Detail (Hover)" }))
   vim.keymap.set("n", "K", M.show_table_detail, vim.tbl_extend("force", opts, { desc = "Show Table Detail (Hover)" }))
   vim.keymap.set("n", "<leader>rs", require("plugins.dadbod.db").switch_connection, vim.tbl_extend("force", opts, { desc = "Switch Database Environment" }))
-  vim.keymap.set("n", "<leader>rf", require("plugins.dadbod.picker").browse_tables, vim.tbl_extend("force", opts, { desc = "Find DB Table (Fuzzy)" }))
+  vim.keymap.set("n", "<leader>rf", require("plugins.dadbod.picker").inspect_tables, vim.tbl_extend("force", opts, { desc = "Inspect DB Schema & Tables (View Only)" }))
+  vim.keymap.set("n", "<leader>ri", require("plugins.dadbod.picker").inspect_tables, vim.tbl_extend("force", opts, { desc = "Inspect DB Schema & Tables (View Only)" }))
   vim.keymap.set("n", "<leader>rh", require("plugins.dadbod.history").switch_result_history, vim.tbl_extend("force", opts, { desc = "Query Result History" }))
   vim.keymap.set("n", "<leader>rx", require("plugins.dadbod.history").clear_all_results, vim.tbl_extend("force", opts, { desc = "Clear Query History" }))
 end
+
+vim.api.nvim_create_user_command("DbInspectTables", function()
+  require("plugins.dadbod.picker").inspect_tables()
+end, { desc = "Inspect DB Schema & Tables (View Only)" })
 
 -- Set up autocommands for SQL files (Folder binding & Omnifunc fallback)
 vim.api.nvim_create_autocmd("FileType", {
@@ -781,6 +786,7 @@ M.copy_block_as_csv = function() require("plugins.dadbod.query").copy_block_as_c
 M.copy_block_as_json = function() require("plugins.dadbod.query").copy_block_as_json() end
 M.switch_connection = function() require("plugins.dadbod.db").switch_connection() end
 M.browse_tables = function() require("plugins.dadbod.picker").browse_tables() end
+M.inspect_tables = function() require("plugins.dadbod.picker").inspect_tables() end
 M.switch_result_history = function() require("plugins.dadbod.history").switch_result_history() end
 M.clear_all_results = function() require("plugins.dadbod.history").clear_all_results() end
 
