@@ -103,28 +103,6 @@ snacks.setup({
   },
 })
 
--- Global monkey-patch for Snacks picker file previewer to always show relative path & line number in preview title
-local preview_ok, preview = pcall(function() return Snacks.picker.preview end)
-if preview_ok and preview then
-  local original_preview_file = preview.file
-  preview.file = function(ctx)
-    local ok = original_preview_file(ctx)
-    if ok ~= false then
-      local path = ctx.item and Snacks.picker.util.path(ctx.item)
-      if path and type(path) == "string" and path ~= "" and not path:find("^%w+://") then
-        local title = vim.fn.fnamemodify(path, ":.")
-        if ctx.item.pos and ctx.item.pos[1] then
-          title = title .. ":" .. ctx.item.pos[1]
-        end
-        if ctx.preview and ctx.preview.set_title then
-          ctx.preview:set_title(title)
-        end
-      end
-    end
-    return ok
-  end
-end
-
 -- Automatically shift focus to an un-fixed window if currently in a winfixbuf window before running picker
 local function ensure_unfixed_window()
   if vim.wo.winfixbuf then
@@ -325,34 +303,7 @@ vim.keymap.set("n", "<leader>cD", function()
   Snacks.picker.diagnostics()
 end, { desc = "Search Diagnostics (Workspace)" })
 
--- Monkey-patch snacks.nvim picker async yielder to prevent yielding across C-call boundary in Neovim 0.12+
-local async_ok, async = pcall(require, "snacks.picker.util.async")
-if async_ok then
-  local original_yielder = async.yielder
-  async.yielder = function(ms)
-    local is_yieldable = true
-    if type(coroutine.isyieldable) == "function" then
-      is_yieldable = coroutine.isyieldable()
-    end
-    if not async.running() or not is_yieldable then
-      return function() end
-    end
-    return original_yielder(ms)
-  end
-end
 
--- Monkey-patch snacks.nvim picker path truncation to remove the vertical ellipsis symbol (⋮)
-local util_ok, picker_util = pcall(require, "snacks.picker.util")
-if util_ok and picker_util then
-  local original_truncpath = picker_util.truncpath
-  picker_util.truncpath = function(path, len, opts)
-    local res = original_truncpath(path, len, opts)
-    if type(res) == "string" then
-      return (res:gsub("^⋮", ""))
-    end
-    return res
-  end
-end
 
 -- Monkey-patch snacks.nvim picker resume to cache items in memory and pre-set cursor position & target immediately
 -- so resuming is 100% instant without re-scanning disk or cursor top-to-bottom jump animation.
