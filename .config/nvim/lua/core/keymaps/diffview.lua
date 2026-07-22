@@ -106,6 +106,11 @@ local function resolve_base_branch(callback)
             if line ~= "" and not line:find("HEAD%s*%->") then
               local status, branch = line:match("^(.)%s+(%S+)")
               if branch then
+                local status_str = line:match("%[%S+:%s*([^%]]+)%]")
+                local ahead = status_str and status_str:match("ahead%s+(%d+)")
+                local behind = status_str and status_str:match("behind%s+(%d+)")
+                local gone = status_str == "gone"
+
                 table.insert(items, {
                   text = branch,
                   branch = branch,
@@ -113,6 +118,9 @@ local function resolve_base_branch(callback)
                   is_remote = false,
                   cwd = root,
                   current = status == "*",
+                  ahead = ahead and tonumber(ahead) or nil,
+                  behind = behind and tonumber(behind) or nil,
+                  gone = gone,
                 })
               end
             end
@@ -147,7 +155,29 @@ local function resolve_base_branch(callback)
         else
           table.insert(ret, { a("  ", 2) })
         end
-        table.insert(ret, { item.branch, "SnacksPickerGitBranch" })
+        table.insert(ret, { a(item.branch, 26, { truncate = true }), "SnacksPickerGitBranch" })
+
+        if not item.is_remote then
+          local status_parts = {}
+          if item.ahead then
+            table.insert(status_parts, { "↑" .. item.ahead, "SnacksPickerGitAhead" })
+          end
+          if item.behind then
+            if #status_parts > 0 then
+              table.insert(status_parts, { " " })
+            end
+            table.insert(status_parts, { "↓" .. item.behind, "SnacksPickerGitBehind" })
+          end
+          if item.gone then
+            table.insert(status_parts, { "[gone]", "SnacksPickerGitGone" })
+          end
+
+          if #status_parts > 0 then
+            table.insert(ret, { " " })
+            vim.list_extend(ret, status_parts)
+          end
+        end
+
         return ret
       end,
       preview = function(ctx)
