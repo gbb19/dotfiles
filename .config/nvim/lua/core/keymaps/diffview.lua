@@ -79,6 +79,8 @@ vim.keymap.set(
   { desc = "List Project History (clean)" }
 )
 
+local _diff_branch_preview_timer = nil
+
 -- Prompt user for base branch using Snacks picker, cache the result until diffview is closed.
 local function resolve_base_branch(callback)
   local key = cache_key()
@@ -148,7 +150,22 @@ local function resolve_base_branch(callback)
         table.insert(ret, { item.branch, "SnacksPickerGitBranch" })
         return ret
       end,
-      preview = "git_log",
+      preview = function(ctx)
+        if not ctx.item or not ctx.item.branch then
+          return
+        end
+        ctx.preview:set_title("Branch: " .. ctx.item.branch)
+        if _diff_branch_preview_timer then
+          pcall(vim.uv.timer_stop, _diff_branch_preview_timer)
+          _diff_branch_preview_timer = nil
+        end
+        _diff_branch_preview_timer = vim.defer_fn(function()
+          if ctx.picker and not ctx.picker.closed and ctx.buf and vim.api.nvim_buf_is_valid(ctx.buf) then
+            pcall(require("snacks.picker.preview").git_log, ctx)
+            vim.bo[ctx.buf].filetype = "git"
+          end
+        end, 80)
+      end,
       confirm = function(picker, item)
         picker:close()
         if item and item.branch then

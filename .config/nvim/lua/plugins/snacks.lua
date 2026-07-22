@@ -165,6 +165,8 @@ vim.keymap.set("n", "<leader>ft", function()
   ensure_unfixed_window()
   Snacks.picker.colorschemes()
 end, { desc = "Select Colorscheme / Themes" })
+local _branch_preview_timer = nil
+
 local function open_git_branches_picker(opts)
   ensure_unfixed_window()
   opts = opts or {}
@@ -226,7 +228,22 @@ local function open_git_branches_picker(opts)
       table.insert(ret, { item.branch, "SnacksPickerGitBranch" })
       return ret
     end,
-    preview = "git_log",
+    preview = function(ctx)
+      if not ctx.item or not ctx.item.branch then
+        return
+      end
+      ctx.preview:set_title("Branch: " .. ctx.item.branch)
+      if _branch_preview_timer then
+        pcall(vim.uv.timer_stop, _branch_preview_timer)
+        _branch_preview_timer = nil
+      end
+      _branch_preview_timer = vim.defer_fn(function()
+        if ctx.picker and not ctx.picker.closed and ctx.buf and vim.api.nvim_buf_is_valid(ctx.buf) then
+          pcall(require("snacks.picker.preview").git_log, ctx)
+          vim.bo[ctx.buf].filetype = "git"
+        end
+      end, 80)
+    end,
   }, opts))
 end
 
