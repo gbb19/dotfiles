@@ -155,7 +155,7 @@ local function resolve_base_branch(callback)
         else
           table.insert(ret, { a("  ", 2) })
         end
-        table.insert(ret, { a(item.branch, 26, { truncate = true }), "SnacksPickerGitBranch" })
+        table.insert(ret, { item.branch, "SnacksPickerGitBranch" })
 
         if not item.is_remote then
           local status_parts = {}
