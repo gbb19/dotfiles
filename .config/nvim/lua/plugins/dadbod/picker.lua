@@ -101,8 +101,13 @@ function M.browse_tables(opts)
       end,
       confirm = function(picker, item)
         picker:close()
-        if not is_view_only and item and item.tbl_name then
-          vim.api.nvim_put({ item.tbl_name }, "c", true, true)
+        if item and item.tbl_name then
+          if is_view_only then
+            local query = string.format("SELECT * FROM %s LIMIT 50;", item.tbl_name)
+            pcall(vim.cmd, "DB " .. query)
+          else
+            vim.api.nvim_put({ item.tbl_name }, "c", true, true)
+          end
         end
       end,
     })
