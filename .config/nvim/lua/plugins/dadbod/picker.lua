@@ -104,7 +104,7 @@ function M.browse_tables(opts)
         if item and item.tbl_name then
           if is_view_only then
             local query = string.format("SELECT * FROM %s LIMIT 50;", item.tbl_name)
-            pcall(vim.cmd, "DB " .. query)
+            pcall(vim.cmd, "vertical DB " .. query)
           else
             vim.api.nvim_put({ item.tbl_name }, "c", true, true)
           end
