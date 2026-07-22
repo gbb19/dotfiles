@@ -354,8 +354,6 @@ vim.keymap.set("n", "<leader>fb", function()
     end,
     format = function(item, picker)
       local ret = {}
-      local num_str = (item.idx and item.idx <= 9) and (tostring(item.idx) .. ". ") or "   "
-      table.insert(ret, { num_str, "SnacksPickerNumber" })
       if item.is_pinned then
         table.insert(ret, { "[P] ", "SnacksPickerLabel" })
       else
