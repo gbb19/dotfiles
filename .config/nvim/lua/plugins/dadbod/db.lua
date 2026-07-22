@@ -110,9 +110,7 @@ function M.switch_connection()
     vim.b[bufnr].db_profile = choice
     vim.b[bufnr].db_file_path = db_file_path
     -- Extract and bind db_service immediately
-    local db_service = db_url:match("[?&]service=([^&#]+)")
-      or db_url:match("^[^?#]*/([^/?#]+)")
-      or ""
+    local db_service = shared.get_service_name(db_url, choice)
     vim.b[bufnr].db_service = db_service
 
     -- Clear buffer-local connection immediately so no query can slip through
@@ -137,7 +135,7 @@ function M.switch_connection()
     end)
 
     -- Reset throttle for this connection profile on explicit user action
-    local notify_key = (db_url and db_url ~= "") and db_url or choice
+    local notify_key = db_service .. ":" .. (db_url ~= "" and db_url or choice)
     _last_failed_notify[notify_key] = nil
 
     -- Run test connection asynchronously
@@ -239,16 +237,9 @@ function M.test_connection_async(db_url, bufnr, profile_name, opts)
       vim.b[bufnr].db = nil
       vim.bo[bufnr].omnifunc = ""
 
-      -- Derive meaningful display name & unique notification cache key
-      local service = db_url:match("[?&]service=([^&#]+)")
-        or db_url:match("^[^?#]*/([^/?#]+)")
-        or ""
-      local display_name = profile_name
-      if (profile_name:lower() == "default" or profile_name == "") and service ~= "" then
-        display_name = service
-      end
-
-      local notify_key = (db_url and db_url ~= "") and db_url or (profile_name .. ":" .. (vim.b[bufnr].db_file_path or ""))
+      -- Derive service name universally
+      local service_name = shared.get_service_name(db_url, profile_name)
+      local notify_key = service_name .. ":" .. (db_url ~= "" and db_url or (vim.b[bufnr].db_file_path or ""))
 
       local now = os.time()
       local last_time = _last_failed_notify[notify_key] or 0
@@ -264,7 +255,7 @@ function M.test_connection_async(db_url, bufnr, profile_name, opts)
         _last_failed_notify[notify_key] = now
         local err = vim.trim(result.stderr or "")
         require("core.utils").notify("db_connection_failed", err, {
-          title   = string.format("[%s] Connection failed", display_name),
+          title   = string.format("[%s] Connection failed", service_name),
           timeout = 8000,
         })
       end

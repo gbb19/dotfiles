@@ -56,6 +56,37 @@ function M.get_adapter(db_url)
   return nil
 end
 
+--- Extract the primary service or database name from a DB connection URL, defaulting to profile_name.
+--- @param db_url string|table
+--- @param profile_name? string
+--- @return string
+function M.get_service_name(db_url, profile_name)
+  if not db_url or db_url == "" then
+    return (profile_name and profile_name ~= "" and profile_name:lower() ~= "default") and profile_name or "DB"
+  end
+
+  local url_str = type(db_url) == "table" and (db_url.url or db_url[1] or "") or tostring(db_url)
+
+  -- 1. Check for explicit service= parameter in URL query string (e.g. postgresql://?service=user-service-dev)
+  local service = url_str:match("[?&]service=([^&#]+)")
+  if service and service ~= "" then
+    return service
+  end
+
+  -- 2. Extract database name from URL path (e.g. postgresql://user:pass@host:5432/user_db)
+  local dbname = url_str:match("^[^?#]*/([^/?#]+)")
+  if dbname and dbname ~= "" and dbname ~= "postgres" and dbname ~= "mysql" then
+    return dbname
+  end
+
+  -- 3. Fallback to profile_name if available and not generic "default"
+  if profile_name and profile_name ~= "" and profile_name:lower() ~= "default" then
+    return profile_name
+  end
+
+  return (dbname and dbname ~= "") and dbname or "DB"
+end
+
 -- ---------------------------------------------------------------------------
 -- Helpers
 -- ---------------------------------------------------------------------------

@@ -167,14 +167,10 @@ local function auto_bind_connection(bufnr)
       local default_key = ordered_keys[1]
       local connection_url = profiles[default_key]
       if connection_url and connection_url ~= "" then
+        local db_service = require("plugins.dadbod.shared").get_service_name(connection_url, default_key)
         vim.b[bufnr].db_profile = default_key
-        vim.b[bufnr].db_file_path = db_file
-
-        -- Extract and bind db_service immediately
-        local db_service = connection_url:match("[?&]service=([^&#]+)")
-          or connection_url:match("^[^?#]*/([^/?#]+)")
-          or ""
         vim.b[bufnr].db_service = db_service
+        vim.b[bufnr].db_file_path = db_file
 
         vim.b[bufnr].db_connection_status = "connecting"
         pcall(function() require("lualine").refresh() end)
