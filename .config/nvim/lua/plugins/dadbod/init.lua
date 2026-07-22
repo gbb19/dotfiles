@@ -722,6 +722,33 @@ vim.api.nvim_create_autocmd("BufEnter", {
   end,
 })
 
+-- Auto-close dbout/explain windows when quitting or closing the last normal window, preventing orphaned dbout windows
+vim.api.nvim_create_autocmd("QuitPre", {
+  group = group,
+  callback = function()
+    local wins = vim.api.nvim_list_wins()
+    local non_dbout_count = 0
+    local dbout_wins = {}
+    for _, win in ipairs(wins) do
+      if vim.api.nvim_win_is_valid(win) then
+        local buf = vim.api.nvim_win_get_buf(win)
+        local ft = vim.bo[buf].filetype
+        if ft == "dbout" or ft == "explain" then
+          table.insert(dbout_wins, win)
+        else
+          non_dbout_count = non_dbout_count + 1
+        end
+      end
+    end
+
+    if non_dbout_count <= 1 then
+      for _, w in ipairs(dbout_wins) do
+        pcall(vim.api.nvim_win_close, w, true)
+      end
+    end
+  end,
+})
+
 -- Track explicit window closure by user (:q or :close on dbout window)
 vim.api.nvim_create_autocmd("WinClosed", {
   group = group,
@@ -751,6 +778,29 @@ vim.api.nvim_create_autocmd("WinClosed", {
         end
       end
     end
+
+    -- Cleanup orphaned dbout windows if only dbout windows remain
+    vim.schedule(function()
+      local wins = vim.api.nvim_list_wins()
+      local non_dbout_count = 0
+      local dbout_wins = {}
+      for _, w in ipairs(wins) do
+        if vim.api.nvim_win_is_valid(w) then
+          local b = vim.api.nvim_win_get_buf(w)
+          local ft = vim.bo[b].filetype
+          if ft == "dbout" or ft == "explain" then
+            table.insert(dbout_wins, w)
+          else
+            non_dbout_count = non_dbout_count + 1
+          end
+        end
+      end
+      if non_dbout_count == 0 then
+        for _, w in ipairs(dbout_wins) do
+          pcall(vim.api.nvim_win_close, w, true)
+        end
+      end
+    end)
   end,
 })
 
