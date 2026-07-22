@@ -180,7 +180,15 @@ vim.api.nvim_create_user_command("PackLspInstall", function(opts)
 
   -- Install Treesitter parsers
   if #to_install_parsers > 0 then
-    vim.cmd("TSInstall " .. table.concat(to_install_parsers, " "))
+    pcall(require, "plugins.treesitter")
+    if vim.fn.exists(":TSInstall") == 2 then
+      vim.cmd("TSInstall " .. table.concat(to_install_parsers, " "))
+    else
+      local ts_ok, ts_install = pcall(require, "nvim-treesitter.install")
+      if ts_ok then
+        pcall(ts_install.update({ with_sync = true }), to_install_parsers)
+      end
+    end
   end
 end, {
   nargs = "*",
