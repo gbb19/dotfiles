@@ -15,7 +15,6 @@ local function safe_buffer_switch(bufnr)
       end
     end
     if not moved then
-      vim.cmd("wincmd s")
       vim.wo.winfixbuf = false
     end
   end
@@ -33,7 +32,6 @@ local function safe_buffer_cycle(cmd)
       end
     end
     if not moved then
-      vim.cmd("wincmd s")
       vim.wo.winfixbuf = false
     end
   end

@@ -132,7 +132,6 @@ local function ensure_unfixed_window()
         return win
       end
     end
-    vim.cmd("wincmd s")
     vim.wo.winfixbuf = false
     return vim.api.nvim_get_current_win()
   end
