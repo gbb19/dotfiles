@@ -39,11 +39,16 @@ local function db_status()
   end
 
   local profile = vim.b[target_buf].db_profile
+  local service = vim.b[target_buf].db_service
   if not profile or profile == "" then
     return "%#LualineGitBlame#󰆼 NONE%*"
   end
 
   local name = profile:upper()
+  if (profile:lower() == "default" or profile:lower() == "none") and service and service ~= "" then
+    name = service:upper()
+  end
+
   local status = vim.b[target_buf].db_connection_status or "connected"
 
   local status_suffix = ""
@@ -57,7 +62,7 @@ local function db_status()
     hl_group = "DiagnosticError"
   elseif status == "connected" then
     status_suffix = " [connected]"
-    local is_prod = profile:lower():match("prod") or profile:lower():match("production")
+    local is_prod = name:lower():match("prod") or name:lower():match("production")
     if is_prod then
       hl_group = "DiagnosticError"
     else
@@ -65,7 +70,7 @@ local function db_status()
     end
   end
 
-  local is_prod = profile:lower():match("prod") or profile:lower():match("production")
+  local is_prod = name:lower():match("prod") or name:lower():match("production")
   local warning_suffix = is_prod and " WARNING" or ""
   local raw_text = "󰆼 " .. name .. status_suffix .. warning_suffix
 

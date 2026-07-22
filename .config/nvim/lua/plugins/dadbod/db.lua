@@ -136,8 +136,9 @@ function M.switch_connection()
       require("plugins.dadbod.tables").clear_cache()
     end)
 
-    -- Reset throttle for this profile on explicit user action
-    _last_failed_notify[choice] = nil
+    -- Reset throttle for this connection profile on explicit user action
+    local notify_key = (db_url and db_url ~= "") and db_url or choice
+    _last_failed_notify[notify_key] = nil
 
     -- Run test connection asynchronously
     M.test_connection_async(db_url, bufnr, choice, { is_auto = false })
@@ -238,25 +239,32 @@ function M.test_connection_async(db_url, bufnr, profile_name, opts)
       vim.b[bufnr].db = nil
       vim.bo[bufnr].omnifunc = ""
 
-      -- Notify failure reason if:
-      -- 1. Manual trigger (is_auto == false)
-      -- 2. OR Auto trigger (is_auto == true) on current active buffer AND not notified recently (< 30s)
+      -- Derive meaningful display name & unique notification cache key
+      local service = db_url:match("[?&]service=([^&#]+)")
+        or db_url:match("^[^?#]*/([^/?#]+)")
+        or ""
+      local display_name = profile_name
+      if (profile_name:lower() == "default" or profile_name == "") and service ~= "" then
+        display_name = service
+      end
+
+      local notify_key = (db_url and db_url ~= "") and db_url or (profile_name .. ":" .. (vim.b[bufnr].db_file_path or ""))
+
       local now = os.time()
-      local last_time = _last_failed_notify[profile_name] or 0
-      local is_current = (bufnr == vim.api.nvim_get_current_buf())
+      local last_time = _last_failed_notify[notify_key] or 0
 
       local should_notify = false
       if not is_auto then
         should_notify = true
-      elseif is_current and (now - last_time > 30) then
+      elseif now - last_time > 15 then
         should_notify = true
       end
 
       if should_notify then
-        _last_failed_notify[profile_name] = now
+        _last_failed_notify[notify_key] = now
         local err = vim.trim(result.stderr or "")
         require("core.utils").notify("db_connection_failed", err, {
-          title   = string.format("[%s] Connection failed", profile_name),
+          title   = string.format("[%s] Connection failed", display_name),
           timeout = 8000,
         })
       end
