@@ -185,6 +185,7 @@ local function open_git_branches_picker(opts)
               table.insert(items, {
                 text = branch,
                 branch = branch,
+                commit = branch,
                 is_remote = false,
                 cwd = root,
                 current = status == "*",
@@ -203,6 +204,7 @@ local function open_git_branches_picker(opts)
             table.insert(items, {
               text = trimmed,
               branch = trimmed,
+              commit = trimmed,
               is_remote = true,
               cwd = root,
               current = false,
