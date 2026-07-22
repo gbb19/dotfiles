@@ -165,10 +165,39 @@ vim.keymap.set("n", "<leader>ft", function()
   ensure_unfixed_window()
   Snacks.picker.colorschemes()
 end, { desc = "Select Colorscheme / Themes" })
-vim.keymap.set("n", "<leader>gc", function()
-  Snacks.picker.git_branches({
+local function open_git_branches_picker(opts)
+  ensure_unfixed_window()
+  opts = opts or {}
+  Snacks.picker.git_branches(vim.tbl_deep_extend("force", {
     all = true,
     cmd_args = { "--sort=-committerdate" },
+    title = "Git Checkout Branch (Local First)",
+    transform = function(item)
+      if item.text then
+        local text = item.text
+        local branch = item.branch or ""
+        item.is_remote = not not (text:find("remotes/") or branch:find("^remotes/") or branch:find("^origin/"))
+      end
+      return item
+    end,
+    sort = function(a, b)
+      local a_rem = a.is_remote and 1 or 0
+      local b_rem = b.is_remote and 1 or 0
+      if a_rem ~= b_rem then
+        return a_rem < b_rem
+      end
+      return 0
+    end,
+    format = function(item, picker)
+      local ret = {}
+      if item.is_remote then
+        table.insert(ret, { "[remote] ", "SnacksPickerLabel" })
+      else
+        table.insert(ret, { "[local]  ", "SnacksPickerLabel" })
+      end
+      vim.list_extend(ret, Snacks.picker.format.git_branch(item, picker))
+      return ret
+    end,
     previewers = {
       diff = {
         style = "syntax",
@@ -180,8 +209,12 @@ vim.keymap.set("n", "<leader>gc", function()
       end
       return require("snacks.picker.preview").git_log(ctx)
     end,
-  })
-end, { desc = "Git Checkout Branch (All, sorted by date)" })
+  }, opts))
+end
+
+vim.keymap.set("n", "<leader>gc", function()
+  open_git_branches_picker()
+end, { desc = "Git Checkout Branch (Local First + MRU)" })
 
 local _grep_last_include = nil
 local _grep_last_exclude = nil
