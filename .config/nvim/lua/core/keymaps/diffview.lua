@@ -95,10 +95,6 @@ local function resolve_base_branch(callback)
     snacks.picker({
       source = "git_branches",
       title = "Select Base Branch for Diff",
-      previewers = {
-        diff = { style = "syntax" },
-        git = { args = { "--first-parent", "-m" } },
-      },
       finder = function(picker_opts, ctx)
         local root = ctx:git_root()
         local items = {}
@@ -195,7 +191,8 @@ local function resolve_base_branch(callback)
         end
         _diff_branch_preview_timer = vim.defer_fn(function()
           if ctx.picker and not ctx.picker.closed and ctx.buf and vim.api.nvim_buf_is_valid(ctx.buf) then
-            pcall(require("snacks.picker.preview").git_show, ctx)
+            local cmd = { "git", "--no-pager", "show", "--first-parent", "-m", ctx.item.branch }
+            pcall(require("snacks.picker.preview").cmd, cmd, ctx, { ft = "git" })
           end
         end, 80)
       end,
