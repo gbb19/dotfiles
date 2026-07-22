@@ -5,35 +5,40 @@ vim.pack.add({ "https://github.com/akinsho/bufferline.nvim" })
 -- Helper to safely switch buffers when current window is locked with winfixbuf
 local function safe_buffer_switch(bufnr)
   if vim.wo.winfixbuf then
-    local moved = false
-    -- Move focus to a non-winfixbuf, non-floating window first
     for _, win in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
       if not vim.wo[win].winfixbuf and vim.api.nvim_win_get_config(win).relative == "" then
         vim.api.nvim_set_current_win(win)
-        moved = true
-        break
+        vim.cmd("buffer " .. bufnr)
+        return
       end
     end
-    if not moved then
-      vim.wo.winfixbuf = false
+    local cur_win = vim.api.nvim_get_current_win()
+    vim.wo[cur_win].winfixbuf = false
+    pcall(vim.cmd, "buffer " .. bufnr)
+    if vim.api.nvim_win_is_valid(cur_win) then
+      vim.wo[cur_win].winfixbuf = true
     end
+    return
   end
   vim.cmd("buffer " .. bufnr)
 end
 
 local function safe_buffer_cycle(cmd)
   if vim.wo.winfixbuf then
-    local moved = false
     for _, win in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
       if not vim.wo[win].winfixbuf and vim.api.nvim_win_get_config(win).relative == "" then
         vim.api.nvim_set_current_win(win)
-        moved = true
-        break
+        vim.cmd(cmd)
+        return
       end
     end
-    if not moved then
-      vim.wo.winfixbuf = false
+    local cur_win = vim.api.nvim_get_current_win()
+    vim.wo[cur_win].winfixbuf = false
+    pcall(vim.cmd, cmd)
+    if vim.api.nvim_win_is_valid(cur_win) then
+      vim.wo[cur_win].winfixbuf = true
     end
+    return
   end
   vim.cmd(cmd)
 end
