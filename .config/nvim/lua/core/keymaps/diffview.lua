@@ -184,22 +184,14 @@ local function resolve_base_branch(callback)
         if not ctx.item or not ctx.item.branch then
           return
         end
-        ctx.preview:set_title("Diff: " .. ctx.item.branch .. " ... HEAD")
+        ctx.preview:set_title("Branch: " .. ctx.item.branch)
         if _diff_branch_preview_timer then
           pcall(vim.uv.timer_stop, _diff_branch_preview_timer)
           _diff_branch_preview_timer = nil
         end
         _diff_branch_preview_timer = vim.defer_fn(function()
           if ctx.picker and not ctx.picker.closed and ctx.buf and vim.api.nvim_buf_is_valid(ctx.buf) then
-            local cmd = { "git", "-c", "core.quotepath=false", "--no-pager", "diff", "--color=never", ctx.item.branch .. "...HEAD" }
-            local diff_out = vim.fn.systemlist(cmd)
-            if vim.v.shell_error == 0 and #diff_out > 0 then
-              ctx.preview:reset()
-              ctx.preview:set_lines(diff_out)
-              vim.bo[ctx.buf].filetype = "diff"
-            else
-              pcall(require("snacks.picker.preview").git_show, ctx)
-            end
+            pcall(require("snacks.picker.preview").git_show, ctx)
           end
         end, 80)
       end,
