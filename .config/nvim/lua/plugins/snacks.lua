@@ -353,3 +353,41 @@ if util_ok and picker_util then
     return res
   end
 end
+
+-- Monkey-patch snacks.nvim picker resume to pre-set cursor position immediately on open
+-- so the cursor doesn't visually jump/scroll down from top to bottom when resuming.
+local resume_ok, picker_resume = pcall(require, "snacks.picker.resume")
+if resume_ok and picker_resume then
+  picker_resume._resume = function(state)
+    state.opts.pattern = state.filter.pattern
+    state.opts.search = state.filter.search
+    if state.items then
+      state.opts.finder = function()
+        return state.items
+      end
+    end
+    local ret = Snacks.picker.pick(state.opts)
+    if state.cursor then
+      ret.list.cursor = state.cursor
+      if state.topline then
+        ret.list.top = state.topline
+      end
+    end
+    ret.list:set_selected(state.selected)
+    if state.cursor then
+      pcall(function() ret.list:view(state.cursor, state.topline) end)
+    end
+    ret.list:update()
+    ret.input:update()
+    ret.matcher.task:on(
+      "done",
+      vim.schedule_wrap(function()
+        if ret.closed then
+          return
+        end
+        ret.list:view(state.cursor, state.topline)
+      end)
+    )
+    return ret
+  end
+end
