@@ -301,22 +301,61 @@ end
 
 vim.keymap.set("n", "<leader>fb", function()
   ensure_unfixed_window()
-  Snacks.picker.buffers({
-    sort_lastused = true,
-    transform = function(item)
-      item.is_pinned = is_buffer_pinned(item.buf)
-      return item
-    end,
-    sort = function(a, b)
-      local a_pin = a.is_pinned and 1 or 0
-      local b_pin = b.is_pinned and 1 or 0
-      if a_pin ~= b_pin then
-        return a_pin > b_pin
+  Snacks.picker({
+    source = "buffers",
+    title = "Buffers (Pinned First + MRU)",
+    finder = function(opts, ctx)
+      local current_buf = vim.api.nvim_get_current_buf()
+      local alternate_buf = vim.fn.bufnr("#")
+      local items = {}
+
+      for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+        if vim.api.nvim_buf_is_valid(buf) and vim.bo[buf].buflisted and vim.bo[buf].filetype ~= "dbout" then
+          local name = vim.api.nvim_buf_get_name(buf)
+          if name == "" then
+            name = "[Scratch]"
+          end
+          local info = (vim.fn.getbufinfo(buf)[1]) or {}
+          local mark = vim.api.nvim_buf_get_mark(buf, '"')
+          local flags = {
+            buf == current_buf and "%" or (buf == alternate_buf and "#" or ""),
+            info.hidden == 1 and "h" or (#(info.windows or {}) > 0) and "a" or "",
+            vim.bo[buf].readonly and "=" or "",
+            info.changed == 1 and "+" or "",
+          }
+          local pinned = is_buffer_pinned(buf)
+          table.insert(items, {
+            buf = buf,
+            name = name,
+            file = name,
+            is_pinned = pinned,
+            info = info,
+            lastused = info.lastused or 0,
+            flags = table.concat(flags),
+            buftype = vim.bo[buf].buftype,
+            filetype = vim.bo[buf].filetype,
+            pos = mark[1] ~= 0 and mark or { info.lnum or 1, 0 },
+          })
+          items[#items].text = Snacks.picker.util.text(items[#items], { "buf", "name", "filetype", "buftype" })
+        end
       end
-      return (a.lastused or 0) > (b.lastused or 0)
+
+      -- Sort: Pinned buffers FIRST (sorted by MRU lastused), then Regular buffers (sorted by MRU lastused)
+      table.sort(items, function(a, b)
+        local a_pin = a.is_pinned and 1 or 0
+        local b_pin = b.is_pinned and 1 or 0
+        if a_pin ~= b_pin then
+          return a_pin > b_pin
+        end
+        return (a.lastused or 0) > (b.lastused or 0)
+      end)
+
+      return ctx.filter:filter(items)
     end,
     format = function(item, picker)
       local ret = {}
+      local num_str = (item.idx and item.idx <= 9) and (tostring(item.idx) .. ". ") or "   "
+      table.insert(ret, { num_str, "SnacksPickerNumber" })
       if item.is_pinned then
         table.insert(ret, { "[P] ", "SnacksPickerLabel" })
       else
@@ -328,15 +367,24 @@ vim.keymap.set("n", "<leader>fb", function()
     win = {
       input = {
         keys = {
-          ["<C-1>"] = { function(p) p.list:view(1) p:action("confirm") end, mode = { "i", "n" } },
-          ["<C-2>"] = { function(p) p.list:view(2) p:action("confirm") end, mode = { "i", "n" } },
-          ["<C-3>"] = { function(p) p.list:view(3) p:action("confirm") end, mode = { "i", "n" } },
-          ["<C-4>"] = { function(p) p.list:view(4) p:action("confirm") end, mode = { "i", "n" } },
-          ["<C-5>"] = { function(p) p.list:view(5) p:action("confirm") end, mode = { "i", "n" } },
-          ["<C-6>"] = { function(p) p.list:view(6) p:action("confirm") end, mode = { "i", "n" } },
-          ["<C-7>"] = { function(p) p.list:view(7) p:action("confirm") end, mode = { "i", "n" } },
-          ["<C-8>"] = { function(p) p.list:view(8) p:action("confirm") end, mode = { "i", "n" } },
-          ["<C-9>"] = { function(p) p.list:view(9) p:action("confirm") end, mode = { "i", "n" } },
+          ["<A-1>"] = { function(p) p.list:view(1) p:action("confirm") end, mode = { "i", "n" } },
+          ["<A-2>"] = { function(p) p.list:view(2) p:action("confirm") end, mode = { "i", "n" } },
+          ["<A-3>"] = { function(p) p.list:view(3) p:action("confirm") end, mode = { "i", "n" } },
+          ["<A-4>"] = { function(p) p.list:view(4) p:action("confirm") end, mode = { "i", "n" } },
+          ["<A-5>"] = { function(p) p.list:view(5) p:action("confirm") end, mode = { "i", "n" } },
+          ["<A-6>"] = { function(p) p.list:view(6) p:action("confirm") end, mode = { "i", "n" } },
+          ["<A-7>"] = { function(p) p.list:view(7) p:action("confirm") end, mode = { "i", "n" } },
+          ["<A-8>"] = { function(p) p.list:view(8) p:action("confirm") end, mode = { "i", "n" } },
+          ["<A-9>"] = { function(p) p.list:view(9) p:action("confirm") end, mode = { "i", "n" } },
+          ["1"] = { function(p) p.list:view(1) p:action("confirm") end, mode = "n" },
+          ["2"] = { function(p) p.list:view(2) p:action("confirm") end, mode = "n" },
+          ["3"] = { function(p) p.list:view(3) p:action("confirm") end, mode = "n" },
+          ["4"] = { function(p) p.list:view(4) p:action("confirm") end, mode = "n" },
+          ["5"] = { function(p) p.list:view(5) p:action("confirm") end, mode = "n" },
+          ["6"] = { function(p) p.list:view(6) p:action("confirm") end, mode = "n" },
+          ["7"] = { function(p) p.list:view(7) p:action("confirm") end, mode = "n" },
+          ["8"] = { function(p) p.list:view(8) p:action("confirm") end, mode = "n" },
+          ["9"] = { function(p) p.list:view(9) p:action("confirm") end, mode = "n" },
         },
       },
     },
