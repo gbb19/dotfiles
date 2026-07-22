@@ -722,6 +722,19 @@ vim.api.nvim_create_autocmd("BufEnter", {
   end,
 })
 
+local function is_dbout_win(win)
+  if not win or not vim.api.nvim_win_is_valid(win) then return false end
+  local buf = vim.api.nvim_win_get_buf(win)
+  if not vim.api.nvim_buf_is_valid(buf) then return false end
+  local ft = vim.bo[buf].filetype
+  if ft == "dbout" or ft == "explain" then return true end
+  local name = vim.api.nvim_buf_get_name(buf)
+  if name:match("%.dbout$") or name:match("/Result_%d+_") or name:find("dadbodout", 1, true) then
+    return true
+  end
+  return false
+end
+
 -- Auto-close dbout/explain windows when quitting or closing the last normal window, preventing orphaned dbout windows
 vim.api.nvim_create_autocmd("QuitPre", {
   group = group,
@@ -730,14 +743,10 @@ vim.api.nvim_create_autocmd("QuitPre", {
     local non_dbout_count = 0
     local dbout_wins = {}
     for _, win in ipairs(wins) do
-      if vim.api.nvim_win_is_valid(win) then
-        local buf = vim.api.nvim_win_get_buf(win)
-        local ft = vim.bo[buf].filetype
-        if ft == "dbout" or ft == "explain" then
-          table.insert(dbout_wins, win)
-        else
-          non_dbout_count = non_dbout_count + 1
-        end
+      if is_dbout_win(win) then
+        table.insert(dbout_wins, win)
+      else
+        non_dbout_count = non_dbout_count + 1
       end
     end
 
@@ -757,24 +766,18 @@ vim.api.nvim_create_autocmd("WinClosed", {
     if shared.is_deleting_result then return end
 
     local win = tonumber(args.match)
-    if win and vim.api.nvim_win_is_valid(win) then
+    if win and is_dbout_win(win) then
       local buf = vim.api.nvim_win_get_buf(win)
-      local ft = vim.bo[buf].filetype
-      if ft == "dbout" or ft == "explain" then
-        local sql_src = vim.b[buf].sql_source_path
-        if sql_src and sql_src ~= "" then
-          local dbout_count = 0
-          for _, w in ipairs(vim.api.nvim_list_wins()) do
-            if w ~= win then
-              local w_ft = vim.bo[vim.api.nvim_win_get_buf(w)].filetype
-              if w_ft == "dbout" or w_ft == "explain" then
-                dbout_count = dbout_count + 1
-              end
-            end
+      local sql_src = vim.b[buf].sql_source_path
+      if sql_src and sql_src ~= "" then
+        local dbout_count = 0
+        for _, w in ipairs(vim.api.nvim_list_wins()) do
+          if w ~= win and is_dbout_win(w) then
+            dbout_count = dbout_count + 1
           end
-          if dbout_count == 0 then
-            shared.set_user_closed(sql_src, true)
-          end
+        end
+        if dbout_count == 0 then
+          shared.set_user_closed(sql_src, true)
         end
       end
     end
@@ -785,14 +788,10 @@ vim.api.nvim_create_autocmd("WinClosed", {
       local non_dbout_count = 0
       local dbout_wins = {}
       for _, w in ipairs(wins) do
-        if vim.api.nvim_win_is_valid(w) then
-          local b = vim.api.nvim_win_get_buf(w)
-          local ft = vim.bo[b].filetype
-          if ft == "dbout" or ft == "explain" then
-            table.insert(dbout_wins, w)
-          else
-            non_dbout_count = non_dbout_count + 1
-          end
+        if is_dbout_win(w) then
+          table.insert(dbout_wins, w)
+        else
+          non_dbout_count = non_dbout_count + 1
         end
       end
       if non_dbout_count == 0 then
