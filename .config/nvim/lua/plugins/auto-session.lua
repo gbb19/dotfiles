@@ -37,6 +37,26 @@ if ok then
         end
       end,
     },
+    post_restore_cmds = {
+      function()
+        -- Restore pinned buffers in bufferline after session restore
+        local g_ok, groups = pcall(require, "bufferline.groups")
+        if g_ok and groups then
+          pcall(function()
+            local pinned = vim.g.BufferlinePinnedBuffers
+            if pinned and pinned ~= "" then
+              local manual_groupings = vim.split(pinned, ",") or {}
+              for _, path in ipairs(manual_groupings) do
+                local buf_id = vim.fn.bufnr(path)
+                if buf_id ~= -1 then
+                  groups.add_element("pinned", { id = buf_id })
+                end
+              end
+            end
+          end)
+        end
+      end,
+    },
   })
 
   -- Keymaps for manual session management
