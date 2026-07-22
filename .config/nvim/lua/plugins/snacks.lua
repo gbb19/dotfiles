@@ -303,7 +303,7 @@ vim.keymap.set("n", "<leader>fb", function()
   ensure_unfixed_window()
   Snacks.picker({
     source = "buffers",
-    title = "Buffers (Pinned First + MRU)",
+    title = "Buffers",
     finder = function(opts, ctx)
       local current_buf = vim.api.nvim_get_current_buf()
       local alternate_buf = vim.fn.bufnr("#")
