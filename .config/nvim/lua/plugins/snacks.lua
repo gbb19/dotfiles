@@ -354,14 +354,26 @@ if util_ok and picker_util then
   end
 end
 
--- Monkey-patch snacks.nvim picker resume to pre-set cursor position & target immediately on open
--- so the cursor doesn't visually jump/scroll down from top to bottom when resuming.
+-- Monkey-patch snacks.nvim picker resume to cache items in memory and pre-set cursor position & target immediately
+-- so resuming is 100% instant without re-scanning disk or cursor top-to-bottom jump animation.
 local resume_ok, picker_resume = pcall(require, "snacks.picker.resume")
 if resume_ok and picker_resume then
+  local original_add = picker_resume.add
+  picker_resume.add = function(picker)
+    original_add(picker)
+    local source = picker.opts.source or "custom"
+    if picker_resume.state[source] then
+      local items = (picker.finder and picker.finder.items) or (picker.list and picker.list.items)
+      if items and #items > 0 then
+        picker_resume.state[source].items = items
+      end
+    end
+  end
+
   picker_resume._resume = function(state)
     state.opts.pattern = state.filter.pattern
     state.opts.search = state.filter.search
-    if state.items then
+    if state.items and #state.items > 0 then
       state.opts.finder = function()
         return state.items
       end
