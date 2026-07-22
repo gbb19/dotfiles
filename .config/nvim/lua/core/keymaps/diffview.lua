@@ -95,6 +95,10 @@ local function resolve_base_branch(callback)
     snacks.picker({
       source = "git_branches",
       title = "Select Base Branch for Diff",
+      previewers = {
+        diff = { style = "syntax" },
+        git = { args = { "--first-parent", "-m" } },
+      },
       finder = function(picker_opts, ctx)
         local root = ctx:git_root()
         local items = {}

@@ -173,6 +173,10 @@ local function open_git_branches_picker(opts)
   Snacks.picker(vim.tbl_deep_extend("force", {
     source = "git_branches",
     title = "Git Branches",
+    previewers = {
+      diff = { style = "syntax" },
+      git = { args = { "--first-parent", "-m" } },
+    },
     finder = function(picker_opts, ctx)
       local root = ctx:git_root()
       local items = {}
