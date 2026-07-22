@@ -102,26 +102,21 @@ function M.browse_tables(opts)
       confirm = function(picker, item)
         picker:close()
         if item and item.tbl_name then
-          vim.schedule(function()
-            if vim.api.nvim_buf_is_valid(bufnr) then
-              local win = vim.fn.bufwinid(bufnr)
-              if win ~= -1 then
-                vim.api.nvim_set_current_win(win)
+          if is_view_only then
+            local query_text = string.format("SELECT * FROM %s LIMIT 50;", item.tbl_name)
+            local snippet = "inspect_" .. (item.name or item.tbl_name):gsub("[^%w%s_-]", ""):gsub("%s+", "_")
+            require("plugins.dadbod.query").run_query_async(db_url, query_text, bufnr, snippet)
+          else
+            vim.schedule(function()
+              if vim.api.nvim_buf_is_valid(bufnr) then
+                local win = vim.fn.bufwinid(bufnr)
+                if win ~= -1 then
+                  vim.api.nvim_set_current_win(win)
+                end
               end
-            end
-
-            if is_view_only then
-              local query = string.format("SELECT * FROM %s LIMIT 50;", item.tbl_name)
-              pcall(vim.cmd, "DB " .. query)
-              vim.defer_fn(function()
-                pcall(function()
-                  require("plugins.dadbod.init").open_last_result()
-                end)
-              end, 200)
-            else
               vim.api.nvim_put({ item.tbl_name }, "c", true, true)
-            end
-          end)
+            end)
+          end
         end
       end,
     })
