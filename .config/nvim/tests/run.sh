@@ -4,3 +4,7 @@ set -eu
 nvim --headless -n -i NONE \
   "+luafile tests/characterization.lua" \
   +qa
+
+nvim --headless -n -i NONE \
+  "+luafile tests/snacks_resume.lua" \
+  +qa
