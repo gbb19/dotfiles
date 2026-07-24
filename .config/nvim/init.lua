@@ -19,13 +19,21 @@ require("plugins.treesitter")
 vim.api.nvim_create_autocmd({ "BufReadPre", "BufNewFile" }, {
   group = vim.api.nvim_create_augroup("LazyFileTooling", { clear = true }),
   callback = function()
-    require("plugins.fidget")
-    require("plugins.conform")
-    require("plugins.gitsigns")
-    require("plugins.bufferline")
-    require("plugins.lsp")
-    require("plugins.treesitter-context")
-    require("plugins.surround")
+    local modules = {
+      "plugins.fidget",
+      "plugins.conform",
+      "plugins.gitsigns",
+      "plugins.bufferline",
+      "plugins.lsp",
+      "plugins.treesitter-context",
+      "plugins.surround",
+    }
+    for _, module in ipairs(modules) do
+      local ok, err = pcall(require, module)
+      if not ok then
+        vim.notify(module .. " failed to load: " .. tostring(err), vim.log.levels.ERROR, { title = "Neovim config" })
+      end
+    end
   end,
   once = true,
 })

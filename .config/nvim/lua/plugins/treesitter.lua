@@ -64,4 +64,6 @@ if ts_ok then
       end
     end,
   })
+else
+  vim.notify("Treesitter failed to load: " .. tostring(ts), vim.log.levels.ERROR, { title = "Neovim config" })
 end
