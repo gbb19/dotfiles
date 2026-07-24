@@ -282,9 +282,9 @@ Acceptance criteria:
 ## Refactor: Diffview Cleanup
 
 - [x] Move reusable Git operations to `core/git/`.
-- [ ] Keep Diffview configuration and review UI behavior in `plugins/diffview.lua`.
-- [ ] Keep only lazy-loading and user-facing keymaps under `core/keymaps/diffview.lua`.
-- [ ] Preserve reviewed-file markers, base-branch selection, hover, and relative-path copy.
+- [x] Keep Diffview configuration and review UI behavior in `plugins/diffview.lua`.
+- [x] Keep only lazy-loading and user-facing keymaps under `core/keymaps/diffview.lua`.
+- [x] Preserve reviewed-file markers, base-branch selection, hover, and relative-path copy.
 
 Acceptance criteria:
 
