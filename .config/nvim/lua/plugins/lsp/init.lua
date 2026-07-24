@@ -1,4 +1,4 @@
--- Load language registry (auto-discovered from lua/languages/)
+-- LSP entry point: package registration and native server orchestration.
 local languages = require("languages")
 local utils = require("core.utils")
 
