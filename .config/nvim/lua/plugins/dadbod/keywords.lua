@@ -34,7 +34,7 @@ function SqlKeywordSource:get_completions(ctx, callback)
       kind       = vim.lsp.protocol.CompletionItemKind.Keyword,
       detail     = "SQL Keyword",
       insertText = kw,
-      sortText   = "9_" .. kw, -- keep keywords ranked below tables and columns
+      sortText   = kw,
     })
   end
 

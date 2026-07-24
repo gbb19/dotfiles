@@ -6,19 +6,57 @@ local last_cursor
 function M.detect_sql_context(bufnr, row, col, line)
   local line_before = line:sub(1, col)
   if line_before:match("[%w_%-\"]+%.[%w_]*$") then return "column" end
+
   local lines = vim.api.nvim_buf_get_lines(bufnr, 0, row, false)
   lines[#lines] = line_before
-  local text = table.concat(lines, " "):gsub("%-%-[^\n]*", ""):gsub("/%*.-%*/", ""):gsub("%s+", " ")
-  local last_keyword
-  for word in text:gmatch("[%w_]+") do
-    local upper_word = word:upper()
-    if upper_word == "FROM" or upper_word == "JOIN" or upper_word == "UPDATE" or upper_word == "INTO" or upper_word == "TABLE" then
-      last_keyword = "table"
-    elseif upper_word == "SELECT" or upper_word == "WHERE" or upper_word == "SET" or upper_word == "AND" or upper_word == "OR" or upper_word == "ON" or upper_word == "BY" then
-      last_keyword = "column"
-    end
+  local text = table.concat(lines, "\n"):gsub("%-%-[^\n]*", ""):gsub("/%*.-%*/", "")
+
+  local last_semi = text:match(".*;()%s*")
+  if last_semi then
+    text = text:sub(last_semi)
   end
-  return last_keyword or "keyword"
+
+  local tokens = {}
+  for token in text:gmatch("[%w_]+") do
+    table.insert(tokens, token)
+  end
+
+  if #tokens == 0 then return "keyword" end
+
+  local ends_with_word = line_before:match("[%w_]$") ~= nil
+  local prev_token_idx = ends_with_word and (#tokens - 1) or #tokens
+
+  if prev_token_idx < 1 then return "keyword" end
+
+  local prev_token = tokens[prev_token_idx]:upper()
+
+  local table_keywords = {
+    FROM = true,
+    JOIN = true,
+    INTO = true,
+    UPDATE = true,
+    TABLE = true,
+    TRUNCATE = true,
+  }
+
+  local column_keywords = {
+    SELECT = true,
+    WHERE = true,
+    SET = true,
+    HAVING = true,
+    ON = true,
+    BY = true,
+    AND = true,
+    OR = true,
+  }
+
+  if table_keywords[prev_token] then
+    return "table"
+  elseif column_keywords[prev_token] then
+    return "column"
+  end
+
+  return "keyword"
 end
 
 function M.get_sql_context_cached()
@@ -62,13 +100,13 @@ function M.setup(blink)
         sql_columns = {
           name = "SQL Columns",
           module = "plugins.dadbod.columns",
-          score_offset = 200,
+          score_offset = 100,
           opts = {},
         },
         sql_tables = {
           name = "SQL Tables",
           module = "plugins.dadbod.tables",
-          score_offset = 150,
+          score_offset = 100,
           opts = {},
         },
         sql_keywords = {
@@ -131,10 +169,6 @@ function M.setup(blink)
           local a_priority = priorities[a.source_id] or 0
           local b_priority = priorities[b.source_id] or 0
           if a_priority ~= b_priority then return a_priority > b_priority end
-
-          local a_sort = a.sortText or a.label
-          local b_sort = b.sortText or b.label
-          if a_sort ~= b_sort then return a_sort < b_sort end
         end,
         "exact",
         "score",
