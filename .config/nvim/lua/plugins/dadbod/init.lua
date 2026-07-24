@@ -147,78 +147,13 @@ function M.show_table_detail()
   end)
 end
 
--- Upward folder-based connection file auto-loading (.db connection file)
-local function auto_bind_connection(bufnr)
-  bufnr = bufnr or vim.api.nvim_get_current_buf()
-  local filepath = vim.api.nvim_buf_get_name(bufnr)
-  if filepath == "" then
-    return
-  end
-
-  -- Search upwards from the SQL file's directory for a '.db' file
-  local db_file = vim.fs.find(".db", {
-    upward = true,
-    path = vim.fs.dirname(filepath),
-  })[1]
-
-  if db_file then
-    local profiles, ordered_keys = require("plugins.dadbod.db").parse_db_file(db_file)
-    if #ordered_keys > 0 then
-      -- Default to the first profile in the file
-      local default_key = ordered_keys[1]
-      local connection_url = profiles[default_key]
-      if connection_url and connection_url ~= "" then
-        local db_service = require("plugins.dadbod.shared").get_service_name(connection_url, default_key)
-        vim.b[bufnr].db_profile = default_key
-        vim.b[bufnr].db_service = db_service
-        vim.b[bufnr].db_file_path = db_file
-
-        vim.b[bufnr].db_connection_status = "connecting"
-        pcall(function() require("lualine").refresh() end)
-
-        require("plugins.dadbod.db").test_connection_async(connection_url, bufnr, default_key, { is_auto = true })
-      end
-    end
-  end
-end
-
--- Registry: maps sql_source_path → last opened/visited dbout file path.
--- Keeps track of what specific result buffer the user viewed last for this SQL file.
-local _last_result_by_sql = state.last_result_by_sql
-
 --- Updates or invalidates the cached last dbout file path for a SQL buffer
 function M.update_last_result(sql_path, result_path)
   state.update_last_result(sql_path, result_path)
 end
 
-local function get_subdir_for_sql(sql_path, bufnr)
-  return require("plugins.dadbod.results").get_subdir_for_sql(sql_path, bufnr)
-end
-
---- Returns the path of the newest Result_*.dbout in `subdir`, or nil if empty.
-local function get_latest_result(subdir)
-  return require("plugins.dadbod.results").get_latest_result(subdir)
-end
-
-local function show_result_in_window(result_path, subdir, sql_source_path)
-  return require("plugins.dadbod.shared").show_result_in_window(result_path, subdir, sql_source_path)
-end
-
---- Open (or switch to) the latest result for the current SQL buffer.
---- Useful after switching from another SQL file and wanting to see previous output.
 function M.open_last_result()
-  local sql_path = vim.api.nvim_buf_get_name(0)
-  local subdir = get_subdir_for_sql(sql_path, 0)
-  if not subdir then
-    require("core.utils").notify("db_no_results_in_history")
-    return
-  end
-  local latest = _last_result_by_sql[sql_path] or get_latest_result(subdir)
-  if not latest then
-    require("core.utils").notify("db_no_results_in_history")
-    return
-  end
-  show_result_in_window(latest, subdir, sql_path)
+  return require("plugins.dadbod.results").open_last()
 end
 
 vim.api.nvim_create_user_command("DbInspectTables", function()
@@ -227,7 +162,7 @@ end, { desc = "Inspect DB Schema & Tables (View Only)" })
 
 local function setup_sql_buffer(args)
   require("plugins.dadbod.buffers").setup_sql(args, {
-    auto_bind = auto_bind_connection,
+    auto_bind = require("plugins.dadbod.db").auto_bind,
     open_last_result = M.open_last_result,
     show_table_detail = M.show_table_detail,
   })

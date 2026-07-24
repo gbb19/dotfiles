@@ -9,6 +9,35 @@ local jobs = require("plugins.dadbod.jobs")
 -- Track last failed notification timestamp per profile name to prevent notification spam on session restore
 local _last_failed_notify = {}
 
+--- Bind the first profile from the nearest .db file to an SQL buffer.
+--- @param bufnr? integer
+function M.auto_bind(bufnr)
+  bufnr = bufnr or vim.api.nvim_get_current_buf()
+  local filepath = vim.api.nvim_buf_get_name(bufnr)
+  if filepath == "" then return end
+
+  local db_file = vim.fs.find(".db", {
+    upward = true,
+    path = vim.fs.dirname(filepath),
+  })[1]
+  if not db_file then return end
+
+  local profiles, ordered_keys = M.parse_db_file(db_file)
+  if #ordered_keys == 0 then return end
+
+  local default_key = ordered_keys[1]
+  local connection_url = profiles[default_key]
+  if not connection_url or connection_url == "" then return end
+
+  vim.b[bufnr].db_profile = default_key
+  vim.b[bufnr].db_service = shared.get_service_name(connection_url, default_key)
+  vim.b[bufnr].db_file_path = db_file
+  vim.b[bufnr].db_connection_status = "connecting"
+  pcall(function() require("lualine").refresh() end)
+
+  M.test_connection_async(connection_url, bufnr, default_key, { is_auto = true })
+end
+
 vim.api.nvim_create_autocmd("VimLeavePre", {
   callback = function()
     -- Stop postgres-language-server daemon if installed to prevent orphaned background processes

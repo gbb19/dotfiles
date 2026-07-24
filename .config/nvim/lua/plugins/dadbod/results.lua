@@ -269,4 +269,21 @@ function M.handle_execute_post(args)
   end
 end
 
+--- Open the latest result associated with the current SQL buffer.
+function M.open_last()
+  local sql_path = vim.api.nvim_buf_get_name(0)
+  local subdir = M.get_subdir_for_sql(sql_path, 0)
+  if not subdir then
+    require("core.utils").notify("db_no_results_in_history")
+    return
+  end
+
+  local latest = state.last_result_by_sql[sql_path] or M.get_latest_result(subdir)
+  if not latest then
+    require("core.utils").notify("db_no_results_in_history")
+    return
+  end
+  M.show_result_in_window(latest, subdir, sql_path)
+end
+
 return M
