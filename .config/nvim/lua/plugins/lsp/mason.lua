@@ -11,14 +11,14 @@ function M.setup(utils)
       registry:on("package:install:failed", function(pkg) pcall(utils.notify, "mason_install_failed", pkg.name) end)
     end
   else
-    vim.notify("Mason failed to load: " .. tostring(mason), vim.log.levels.ERROR, { title = "Neovim config" })
+    utils.notify("config_mason_failed", tostring(mason), { title = "Neovim config" })
   end
 
   local mason_lspconfig_ok, mason_lspconfig = pcall(require, "mason-lspconfig")
   if mason_lspconfig_ok then
     mason_lspconfig.setup({ ensure_installed = {}, automatic_enable = false })
   else
-    vim.notify("mason-lspconfig failed to load: " .. tostring(mason_lspconfig), vim.log.levels.ERROR, { title = "Neovim config" })
+    utils.notify("config_mason_lspconfig_failed", tostring(mason_lspconfig), { title = "Neovim config" })
   end
 end
 

@@ -33,11 +33,11 @@ if lazydev_ok then
     },
   })
 else
-  vim.notify("LazyDev failed to load: " .. tostring(lazydev), vim.log.levels.WARN, { title = "Neovim config" })
+  require("core.utils").notify("config_completion_failed", "lazydev: " .. tostring(lazydev), { title = "Neovim config" })
 end
 local blink_ok, blink = pcall(require, "blink.cmp")
 if not blink_ok then
-  vim.notify("blink.cmp failed to load: " .. tostring(blink), vim.log.levels.ERROR, { title = "Neovim config" })
+  require("core.utils").notify("config_completion_failed", tostring(blink), { title = "Neovim config" })
 end
 local mason = require("plugins.lsp.mason")
 local diagnostics = require("plugins.lsp.diagnostics")

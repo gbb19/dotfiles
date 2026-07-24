@@ -31,7 +31,7 @@ vim.api.nvim_create_autocmd({ "BufReadPre", "BufNewFile" }, {
     for _, module in ipairs(modules) do
       local ok, err = pcall(require, module)
       if not ok then
-        vim.notify(module .. " failed to load: " .. tostring(err), vim.log.levels.ERROR, { title = "Neovim config" })
+        require("core.utils").notify("config_module_failed", module .. ": " .. tostring(err), { title = "Neovim config" })
       end
     end
   end,

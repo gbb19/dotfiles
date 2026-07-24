@@ -8,7 +8,7 @@ end })
 
 local ok, snacks = pcall(require, "snacks")
 if not ok then
-  vim.notify("Snacks failed to load: " .. tostring(snacks), vim.log.levels.ERROR, { title = "Neovim config" })
+  require("core.utils").notify("config_snacks_failed", tostring(snacks), { title = "Neovim config" })
   return
 end
 local picker_resume = require("plugins.snacks.resume")
