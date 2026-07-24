@@ -36,36 +36,11 @@ end
 local blink_ok, blink = pcall(require, "blink.cmp")
 local mason = require("plugins.lsp.mason")
 local diagnostics = require("plugins.lsp.diagnostics")
+local completion = require("plugins.lsp.completion")
 
 -- Helper to dynamically detect SQL query context for smart completion sorting
 local function detect_sql_context(bufnr, row, col, line)
-  -- 1. Check if cursor is immediately after a dot "." (alias/schema selection)
-  local line_before = line:sub(1, col)
-  if line_before:match("[%w_%-\"]+%.[%w_]*$") then
-    return "column"
-  end
-
-  -- 2. Get buffer lines up to current cursor position to parse preceding context
-  local lines = vim.api.nvim_buf_get_lines(bufnr, 0, row, false)
-  lines[#lines] = line_before
-  local text = table.concat(lines, " ")
-
-  -- Strip SQL comments to avoid false keyword matches
-  text = text:gsub("%-%-[^\n]*", ""):gsub("/%*.-%*/", "")
-  text = text:gsub("%s+", " ")
-
-  -- Match the last significant SQL clause keyword before the cursor
-  local last_keyword = nil
-  for word in text:gmatch("[%w_]+") do
-    local upper_word = word:upper()
-    if upper_word == "FROM" or upper_word == "JOIN" or upper_word == "UPDATE" or upper_word == "INTO" or upper_word == "TABLE" then
-      last_keyword = "table"
-    elseif upper_word == "SELECT" or upper_word == "WHERE" or upper_word == "SET" or upper_word == "AND" or upper_word == "OR" or upper_word == "ON" or upper_word == "BY" then
-      last_keyword = "column"
-    end
-  end
-
-  return last_keyword or "keyword"
+  return completion.detect_sql_context(bufnr, row, col, line)
 end
 
 local cached_context = nil
