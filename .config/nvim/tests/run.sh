@@ -24,3 +24,7 @@ nvim --headless -n -i NONE \
 nvim --headless -n -i NONE \
   "+luafile tests/dadbod_runtime.lua" \
   +qa
+
+nvim --headless -n -i NONE \
+  "+luafile tests/dadbod_immediate_load.lua" \
+  +qa

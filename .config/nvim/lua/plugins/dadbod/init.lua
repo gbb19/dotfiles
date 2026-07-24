@@ -286,16 +286,18 @@ vim.api.nvim_create_user_command("DbInspectTables", function()
 end, { desc = "Inspect DB Schema & Tables (View Only)" })
 
 -- Set up autocommands for SQL files (Folder binding & Omnifunc fallback)
+local function setup_sql_buffer(args)
+  require("plugins.dadbod.buffers").setup_sql(args, {
+    auto_bind = auto_bind_connection,
+    open_last_result = M.open_last_result,
+    show_table_detail = M.show_table_detail,
+  })
+end
+
 vim.api.nvim_create_autocmd("FileType", {
   pattern = "sql",
   group = group,
-  callback = function(args)
-    require("plugins.dadbod.buffers").setup_sql(args, {
-      auto_bind = auto_bind_connection,
-      open_last_result = M.open_last_result,
-      show_table_detail = M.show_table_detail,
-    })
-  end,
+  callback = setup_sql_buffer,
 })
 
 -- Auto-preview: when entering a SQL buffer, auto-show its latest result in the dbout window if available.
@@ -533,7 +535,7 @@ vim.api.nvim_create_autocmd("VimLeavePre", {
 if vim.bo.filetype == "sql" then
   setup_sql_buffer()
 elseif vim.bo.filetype == "dbout" then
-  setup_dbout_buffer()
+  require("plugins.dadbod.buffers").setup_dbout()
 end
 
 return M
