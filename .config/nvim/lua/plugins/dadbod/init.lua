@@ -182,21 +182,6 @@ local function auto_bind_connection(bufnr)
   end
 end
 
--- Local setup for the dbout result buffers
--- Autocommands for DB output & explain files: enforce winfixbuf so picker/bufferline cannot replace this window
-vim.api.nvim_create_autocmd({ "FileType", "BufReadPost", "BufEnter", "BufWinEnter" }, {
-  pattern = { "dbout", "*.dbout", "explain" },
-  group = group,
-  callback = require("plugins.dadbod.buffers").setup_dbout,
-})
-
--- Track active Fidget handles per output file path
-local _query_handles = state.query_handles
-
--- Registry: maps output file_path → SQL source bufnr captured at DBExecutePre time.
--- Needed because db_input on the dbout buffer is a dadbod temp file, not the real SQL path.
-local _sql_source_by_output = state.sql_source_by_output
-
 -- Registry: maps sql_source_path → last opened/visited dbout file path.
 -- Keeps track of what specific result buffer the user viewed last for this SQL file.
 local _last_result_by_sql = state.last_result_by_sql
@@ -219,51 +204,6 @@ local function show_result_in_window(result_path, subdir, sql_source_path)
   return require("plugins.dadbod.shared").show_result_in_window(result_path, subdir, sql_source_path)
 end
 
--- Intercept DBExecutePre: show Fidget spinner when a query starts
-vim.api.nvim_create_autocmd("User", {
-  pattern = "*dbout/DBExecutePre",
-  group = group,
-  callback = function(args)
-    local file_path = args.match:match("^(.*)/DBExecutePre$")
-    if not file_path then return end
-
-    -- Capture the SQL source buffer NOW, before dadbod switches focus to the result window.
-    -- vim.api.nvim_get_current_buf() is still the .sql buffer at this point.
-    _sql_source_by_output[file_path] = vim.api.nvim_get_current_buf()
-
-    local ok, fidget_progress = pcall(require, "fidget.progress")
-    if not ok then return end
-
-    -- Close any lingering handle for this file (e.g. re-run 'R')
-    if _query_handles[file_path] then
-      pcall(function() _query_handles[file_path]:finish() end)
-    end
-
-    -- Derive label from the connection URL, works across all supported DB types:
-    --   postgresql://?service=vendii-local  →  vendii-local   (service param)
-    --   mysql://user@host/mydb?charset=utf8 →  mydb           (path before ?)
-    --   sqlite:///home/user/app.db          →  app.db         (last path segment)
-    local db_url = vim.b.db or ""
-    local url_str = type(db_url) == "table" and (db_url.url or db_url[1] or "") or tostring(db_url)
-    local label = url_str:match("[?&]service=([^&#]+)")  -- service= anywhere in query string
-      or url_str:match("^[^?#]*/([^/?#]+)")              -- last path segment before ? or #
-      or "db"
-
-    _query_handles[file_path] = fidget_progress.handle.create({
-      title      = string.format("DB [%s]", label),
-      message    = "Running...",
-      lsp_client = { name = "Dadbod" },
-    })
-  end,
-})
-
--- Autocommand to rename DB output buffers to avoid overwriting them
-vim.api.nvim_create_autocmd("User", {
-  pattern = "*dbout/DBExecutePost",
-  group = group,
-  callback = require("plugins.dadbod.results").handle_execute_post,
-})
-
 --- Open (or switch to) the latest result for the current SQL buffer.
 --- Useful after switching from another SQL file and wanting to see previous output.
 function M.open_last_result()
@@ -285,7 +225,6 @@ vim.api.nvim_create_user_command("DbInspectTables", function()
   require("plugins.dadbod.picker").inspect_tables()
 end, { desc = "Inspect DB Schema & Tables (View Only)" })
 
--- Set up autocommands for SQL files (Folder binding & Omnifunc fallback)
 local function setup_sql_buffer(args)
   require("plugins.dadbod.buffers").setup_sql(args, {
     auto_bind = auto_bind_connection,
@@ -294,10 +233,9 @@ local function setup_sql_buffer(args)
   })
 end
 
-vim.api.nvim_create_autocmd("FileType", {
-  pattern = "sql",
+require("plugins.dadbod.autocmds").setup({
   group = group,
-  callback = setup_sql_buffer,
+  setup_sql = setup_sql_buffer,
 })
 
 -- Auto-preview: when entering a SQL buffer, auto-show its latest result in the dbout window if available.
