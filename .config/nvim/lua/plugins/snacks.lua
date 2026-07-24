@@ -232,4 +232,5 @@ vim.keymap.set("n", "<leader>fb", function()
     },
   })
 end, { desc = "Find Buffers (Pinned First + MRU)" })
+require("plugins.snacks.buffers").setup(ensure_unfixed_window)
 require("plugins.snacks.misc").setup(ensure_unfixed_window)
