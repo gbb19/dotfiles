@@ -1,18 +1,3 @@
--- Patch vim.uri_from_fname to always produce absolute file:// URIs.
--- When Neovim's LSP computes a workspace root URI for a buffer whose directory
--- resolves to "." (e.g. diffview opens in a tab with a relative tcd),
--- the default behaviour produces "file://." which servers like vtsls reject with
--- InvalidParams (crashing the assert at vim/lsp/client.lua:581).
--- Expanding relative paths to absolute at the URI-encoding layer fixes every caller.
-local _orig_uri_from_fname = vim.uri_from_fname
-vim.uri_from_fname = function(path)
-  if type(path) == "string" and path ~= "" and not vim.startswith(path, "/") then
-    local abs = vim.fn.fnamemodify(path, ":p"):gsub("/$", "")
-    if abs and abs ~= "" then path = abs end
-  end
-  return _orig_uri_from_fname(path)
-end
-
 -- Load language registry (auto-discovered from lua/languages/)
 local languages = require("languages")
 local utils = require("core.utils")
@@ -273,58 +258,12 @@ end
 -- 3. Configure LSP servers via native Neovim 0.12+ APIs
 local capabilities = blink_ok and blink.get_lsp_capabilities() or vim.lsp.protocol.make_client_capabilities()
 
--- Global LSP defaults applied to every server.
-vim.lsp.config("*", {
-  root_markers = { ".git", "package.json", "tsconfig.json", "Cargo.toml", "go.mod", "pyproject.toml" },
-
-  -- Sanitize initialize params before sending to the server.
-  -- When diffview (or any plugin) opens buffers whose directory resolves to "."
-  -- (relative), Neovim computes rootUri = "file://." — an invalid URI that causes
-  -- servers like vtsls to respond with InvalidParams, crashing the assert at
-  -- vim/lsp/client.lua:581.
-  before_init = function(params)
-    local function is_absolute_uri(uri)
-      if type(uri) ~= "string" then return false end
-      local path = vim.uri_to_fname(uri)
-      return vim.startswith(path, "/")
-    end
-
-    -- Drop rootUri / rootPath if they reference a non-absolute path
-    if params.rootUri and type(params.rootUri) == "string" and not is_absolute_uri(params.rootUri) then
-      params.rootUri = vim.NIL
-      params.rootPath = vim.NIL
-    end
-
-    -- Filter workspaceFolders to only include entries with absolute URIs
-    if params.workspaceFolders and type(params.workspaceFolders) == "table" then
-      params.workspaceFolders = vim.tbl_filter(
-        function(f) return f and type(f) == "table" and is_absolute_uri(f.uri) end,
-        params.workspaceFolders
-      )
-      if #params.workspaceFolders == 0 then
-        params.workspaceFolders = vim.NIL
-      end
-    end
-  end,
-})
-
-local function get_executable(server, resolved)
+local function get_executable(resolved)
   local cmd = resolved and resolved.cmd
   if type(cmd) == "table" then
     return cmd[1]
   elseif type(cmd) == "string" then
     return cmd
-  end
-
-  local ok, lspconfig = pcall(require, "lspconfig.configs." .. server)
-  if ok and lspconfig then
-    local def_config = lspconfig.default_config
-    local def_cmd = def_config and def_config.cmd
-    if type(def_cmd) == "table" then
-      return def_cmd[1]
-    elseif type(def_cmd) == "string" then
-      return def_cmd
-    end
   end
   return nil
 end
@@ -341,7 +280,7 @@ for _, server in ipairs(languages.lsp_servers) do
 
   -- Only enable the server if its executable is available to prevent annoying "Spawning language server failed" errors
   local resolved = vim.lsp.config[server]
-  local executable = get_executable(server, resolved)
+  local executable = get_executable(resolved)
 
   if executable == nil or vim.fn.executable(executable) == 1 then
     vim.lsp.enable(server)

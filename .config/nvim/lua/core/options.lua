@@ -29,9 +29,12 @@ vim.opt.sidescrolloff = 8
 vim.opt.termguicolors = true
 vim.opt.clipboard = "unnamedplus"
 
--- Use OSC 52 clipboard integration in remote containers or SSH where xclip/wl-copy might not work.
--- This sends escape sequences to the host terminal, which then copies the text to the host system clipboard.
-if vim.fn.has("nvim-0.10.0") == 1 then
+-- Use OSC 52 only for remote sessions. Set NVIM_FORCE_OSC52=1 for containers
+-- that do not expose SSH environment variables.
+local use_osc52 = vim.env.SSH_TTY ~= nil
+  or vim.env.SSH_CONNECTION ~= nil
+  or vim.env.NVIM_FORCE_OSC52 == "1"
+if use_osc52 then
   local osc52_ok, osc52 = pcall(require, "vim.ui.clipboard.osc52")
   if osc52_ok then
     vim.g.clipboard = {

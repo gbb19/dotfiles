@@ -21,6 +21,26 @@ vim.api.nvim_create_user_command("PackHealth", function()
   vim.cmd("checkhealth vim.pack")
 end, { desc = "Run vim.pack health check" })
 
+-- Keep parsers compatible with nvim-treesitter whenever the plugin changes.
+vim.api.nvim_create_autocmd("PackChanged", {
+  group = vim.api.nvim_create_augroup("PackUpdateHooks", { clear = true }),
+  callback = function(args)
+    local data = args.data
+    if not data or data.spec.name ~= "nvim-treesitter" then
+      return
+    end
+    if data.kind ~= "install" and data.kind ~= "update" then
+      return
+    end
+    vim.schedule(function()
+      local ok, treesitter = pcall(require, "nvim-treesitter")
+      if ok then
+        treesitter.update(nil, { summary = true })
+      end
+    end)
+  end,
+})
+
 vim.api.nvim_create_user_command("PackClean", function()
   local utils = require("core.utils")
 
@@ -278,20 +298,6 @@ vim.api.nvim_create_autocmd({ "FocusGained", "BufEnter", "CursorHold", "TermClos
     end
     if package.loaded["lualine"] then
       pcall(function() require("lualine").refresh() end)
-    end
-  end,
-})
-
--- Automatically refresh TypeScript projects when focus is regained
-vim.api.nvim_create_autocmd("FocusGained", {
-  group = vim.api.nvim_create_augroup("LspAutoRefresh", { clear = true }),
-  callback = function()
-    for _, client in ipairs(vim.lsp.get_clients()) do
-      if client.name == "vtsls" then
-        client:request("workspace/executeCommand", {
-          command = "_typescript.reloadProjects",
-        }, nil, 0)
-      end
     end
   end,
 })

@@ -8,30 +8,12 @@ require("core.commands")
 require("core.ui")
 require("core.layout").setup()
 
--- Global safety wrapper for nvim_buf_call to prevent async plugin crashes
--- when plugins try to execute operations on closed/deleted buffers.
-local original_buf_call = vim.api.nvim_buf_call
-vim.api.nvim_buf_call = function(bufnr, cb)
-  if vim.api.nvim_buf_is_valid(bufnr) then
-    return original_buf_call(bufnr, cb)
-  end
-end
--- Mock nvim-web-devicons for plugins that require it
--- since we don't use file/section icons in our clean text-only config.
-package.preload["nvim-web-devicons"] = function()
-  return {
-    get_icon = function() return "" end,
-    get_icon_by_filetype = function() return "" end,
-    get_icon_color = function() return "" end,
-    get_icon_colors = function() return "", "" end,
-    setup = function() end,
-  }
-end
-
 -- Load plugins
 require("plugins.theme")
 require("plugins.snacks")
 require("plugins.lualine")
+-- nvim-treesitter's current rewrite does not support lazy loading.
+require("plugins.treesitter")
 
 -- Lazy load file-buffer tooling on first file buffer read/create
 vim.api.nvim_create_autocmd({ "BufReadPre", "BufNewFile" }, {
@@ -42,7 +24,6 @@ vim.api.nvim_create_autocmd({ "BufReadPre", "BufNewFile" }, {
     require("plugins.gitsigns")
     require("plugins.bufferline")
     require("plugins.lsp")
-    require("plugins.treesitter")
     require("plugins.treesitter-context")
     require("plugins.surround")
   end,
