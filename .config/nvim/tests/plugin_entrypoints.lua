@@ -9,6 +9,12 @@ local modules = {
   "plugins.lsp.completion",
   "plugins.lsp.mason",
   "plugins.lsp.diagnostics",
+  "plugins.diffview.actions",
+  "core.commands",
+  "core.autocmds",
+  "core.files",
+  "core.notify",
+  "core.git.feature",
 }
 
 local failures = {}

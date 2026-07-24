@@ -302,7 +302,7 @@ Acceptance criteria:
 - [x] Add headless tests for SQL parsing and result-path generation.
 - [x] Add smoke tests for keymap registration and plugin entry points.
 - [x] Document external dependencies: Git, ripgrep, fd, database CLIs, tmux, and OSC 52 terminal support.
-- [ ] Run `:checkhealth` after the final refactor.
+- [x] Run `:checkhealth` after the final refactor.
 - [x] Measure empty startup and first-file startup after the final refactor.
 - [x] Confirm `nvim-pack-lock.json` remains synchronized.
 
