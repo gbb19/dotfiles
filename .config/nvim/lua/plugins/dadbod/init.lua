@@ -69,6 +69,15 @@ if vim.bo.filetype == "sql" then
   setup_sql_buffer()
 elseif vim.bo.filetype == "dbout" then
   require("plugins.dadbod.buffers").setup_dbout()
+  require("plugins.dadbod.rename").setup(0)
 end
+
+vim.api.nvim_create_autocmd("FileType", {
+  group = group,
+  pattern = "dbout",
+  callback = function(args)
+    require("plugins.dadbod.rename").setup(args.buf)
+  end,
+})
 
 return M

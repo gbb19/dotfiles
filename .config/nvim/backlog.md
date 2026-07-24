@@ -256,8 +256,8 @@ Acceptance criteria:
 - [x] Split environment loading from `core/commands.lua`.
 - [x] Move general autocommands into a dedicated core module.
 - [ ] Split notification messages from `core/utils.lua`.
-- [ ] Move generic file operations into `core/files.lua`.
-- [ ] Remove Dadbod-specific behavior from generic core modules.
+- [x] Move generic file operations into `core/files.lua`.
+- [x] Remove Dadbod-specific behavior from generic core modules.
 
 Suggested structure:
 
