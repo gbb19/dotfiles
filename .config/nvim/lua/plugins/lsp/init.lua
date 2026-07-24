@@ -222,54 +222,7 @@ attach.setup(function(ev)
       end, vim.tbl_extend("force", opts, { desc = "Go to Definition" }))
     end
     vim.keymap.set("n", "gy", function()
-      vim.lsp.buf.type_definition({
-        on_list = function(options)
-          local items = options.items
-          local has_custom = false
-
-          if #items > 1 then
-            local filtered = {}
-            for _, item in ipairs(items) do
-              local filename = item.filename
-              if filename and not filename:match("node_modules") and not filename:match("lib%..*%.d%.ts") then
-                table.insert(filtered, item)
-              end
-            end
-            if #filtered > 0 then
-              items = filtered
-              has_custom = true
-            end
-          else
-            local filename = items[1] and items[1].filename
-            if filename and not filename:match("node_modules") and not filename:match("lib%..*%.d%.ts") then
-              has_custom = true
-            end
-          end
-
-          if #items == 1 then
-            local item = items[1]
-            require("core.layout").jump_to_normal_window()
-            vim.cmd("normal! m'")
-            vim.cmd("edit " .. vim.fn.fnameescape(item.filename))
-            vim.api.nvim_win_set_cursor(0, { item.lnum, item.col - 1 })
-          elseif #items > 1 then
-            if not has_custom then
-              -- Fallback: jump to the first library definition directly if no custom types exist
-              local item = items[1]
-              require("core.layout").jump_to_normal_window()
-              vim.cmd("normal! m'")
-              vim.cmd("edit " .. vim.fn.fnameescape(item.filename))
-              vim.api.nvim_win_set_cursor(0, { item.lnum, item.col - 1 })
-            else
-              -- Open picker for multiple custom definitions
-              vim.fn.setqflist({}, " ", { title = options.title, items = items, context = options.context })
-              vim.schedule(function()
-                Snacks.picker.qflist()
-              end)
-            end
-          end
-        end,
-      })
+      attach.type_definition()
     end, vim.tbl_extend("force", opts, { desc = "Go to Type Definition" }))
     if client.name ~= "graphql" then
       vim.keymap.set("n", "gr", function()
