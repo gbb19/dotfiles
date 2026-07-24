@@ -32,8 +32,13 @@ if lazydev_ok then
       { path = "${3rd}/luv/library", words = { "vim%.uv" } },
     },
   })
+else
+  vim.notify("LazyDev failed to load: " .. tostring(lazydev), vim.log.levels.WARN, { title = "Neovim config" })
 end
 local blink_ok, blink = pcall(require, "blink.cmp")
+if not blink_ok then
+  vim.notify("blink.cmp failed to load: " .. tostring(blink), vim.log.levels.ERROR, { title = "Neovim config" })
+end
 local mason = require("plugins.lsp.mason")
 local diagnostics = require("plugins.lsp.diagnostics")
 local completion = require("plugins.lsp.completion")

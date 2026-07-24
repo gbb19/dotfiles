@@ -235,10 +235,14 @@ Acceptance criteria:
 
 ## Fix: Report Critical Module Load Failures
 
-- [ ] Define which modules are critical and which are optional.
-- [ ] Report critical Snacks, Treesitter, completion, Mason, and LSP setup failures.
-- [ ] Keep optional plugin failures non-fatal where appropriate.
-- [ ] Implement only after the LSP and Snacks structural refactors are verified.
+Critical modules are Snacks, Treesitter, blink.cmp, Mason, mason-lspconfig, and
+the LSP entrypoint. Their setup failures are reported immediately. Feature-only
+modules such as Fidget, Gitsigns, Bufferline, and Surround remain non-fatal.
+
+- [x] Define which modules are critical and which are optional.
+- [x] Report critical Snacks, Treesitter, completion, Mason, and LSP setup failures.
+- [x] Keep optional plugin failures non-fatal where appropriate.
+- [x] Implement only after the LSP and Snacks structural refactors are verified.
 
 Acceptance criteria:
 
