@@ -8,3 +8,7 @@ nvim --headless -n -i NONE \
 nvim --headless -n -i NONE \
   "+luafile tests/snacks_resume.lua" \
   +qa
+
+nvim --headless -n -i NONE \
+  "+luafile tests/dadbod_state.lua" \
+  +qa
