@@ -2,6 +2,7 @@
 local utils = require("core.utils")
 local git_branches = require("core.git.branches")
 local git_repo = require("core.git.repo")
+local git_feature = require("core.git.feature")
 
 vim.api.nvim_create_user_command("DiffviewOpen", function(opts)
   require("plugins.diffview")
@@ -223,90 +224,15 @@ local function open_line_feature_diff()
     return
   end
 
-  local line = vim.api.nvim_win_get_cursor(0)[1]
-  local blame_out = vim.fn.system({
-    "git", "blame",
-    "-L", string.format("%d,%d", line, line),
-    "--porcelain",
-    file
-  })
-  if vim.v.shell_error ~= 0 or blame_out == "" then
-    utils.notify("git_blame_failed")
+  local result, err = git_feature.resolve_line_commit(file, vim.api.nvim_win_get_cursor(0)[1])
+  if not result then
+    utils.notify(err)
     return
-  end
-
-  local commit = blame_out:match("^(%x+)")
-  if not commit or commit:match("^0+$") then
-    utils.notify("git_uncommitted")
-    return
-  end
-
-  -- List of base branches to check, in order of early integration to late integration
-  local base_branches = {
-    "dev", "develop", "origin/dev", "origin/develop",
-    "master", "main", "origin/master", "origin/main",
-    "staging", "origin/staging",
-    "HEAD"
-  }
-
-  -- Filter base branches to only those that exist and contain the commit
-  local candidate_branches = {}
-  for _, br in ipairs(base_branches) do
-    vim.fn.system({ "git", "rev-parse", "--verify", br })
-    if vim.v.shell_error == 0 then
-      vim.fn.system({ "git", "merge-base", "--is-ancestor", commit, br })
-      if vim.v.shell_error == 0 then
-        table.insert(candidate_branches, br)
-      end
-    end
   end
 
   require("plugins.diffview")
-
-  -- If no branch contains this commit, just show the commit itself
-  if #candidate_branches == 0 then
-    utils.notify("git_open_commit", commit:sub(1, 8))
-    vim.cmd("DiffviewOpen " .. commit .. "^!")
-    return
-  end
-
-  -- We want the first candidate branch in our ordered list that contains the commit
-  local target_branch = candidate_branches[1]
-
-  -- Check if the commit itself is a merge commit
-  vim.fn.system({ "git", "rev-parse", "--verify", commit .. "^2" })
-  local is_merge = vim.v.shell_error == 0
-  if is_merge then
-    utils.notify("git_open_merge", string.format("%s (merged in %s)", commit:sub(1, 8), target_branch))
-    vim.cmd("DiffviewOpen " .. commit .. "^!")
-    return
-  end
-
-  -- Check if the commit is in the first-parent history of the target branch
-  local first_parent_list = vim.fn.system({ "git", "rev-list", "--first-parent", target_branch })
-  local is_first_parent = vim.v.shell_error == 0 and first_parent_list:find(commit, 1, true) ~= nil
-  if is_first_parent then
-    utils.notify("git_open_commit", string.format("%s (found on %s first-parent)", commit:sub(1, 8), target_branch))
-    vim.cmd("DiffviewOpen " .. commit .. "^!")
-    return
-  end
-
-  -- If not, find the oldest first-parent ancestor of commit H on target_branch (the merge commit)
-  local escaped_branch = vim.fn.shellescape(target_branch)
-  local find_merge_cmd = string.format(
-    "(git rev-list %s..%s --ancestry-path 2>/dev/null | cat -n; git rev-list %s..%s --first-parent 2>/dev/null | cat -n) | sort -k2 -s | uniq -f1 -d | sort -n | tail -1 | cut -f2",
-    commit, escaped_branch, commit, escaped_branch
-  )
-  local merge_commit = vim.trim(vim.fn.system(find_merge_cmd))
-  if merge_commit ~= "" then
-    utils.notify("git_open_merge", string.format("%s (merged into %s)", merge_commit:sub(1, 8), target_branch))
-    vim.cmd("DiffviewOpen " .. merge_commit .. "^!")
-    return
-  end
-
-  -- Fallback to the commit itself
-  utils.notify("git_open_commit", string.format("%s (fallback)", commit:sub(1, 8)))
-  vim.cmd("DiffviewOpen " .. commit .. "^!")
+  utils.notify(result.kind == "merge" and "git_open_merge" or "git_open_commit", result.detail)
+  vim.cmd("DiffviewOpen " .. result.commit .. "^!")
 end
 
 vim.keymap.set("n", "<leader>gm", open_line_feature_diff, { desc = "View Merge/Feature Diff for Current Line" })
