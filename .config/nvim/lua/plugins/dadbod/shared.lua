@@ -394,38 +394,7 @@ end
 --- @param bufnr integer|nil
 --- @return string|nil
 function M.get_subdir_for_sql(sql_path, bufnr)
-  if not sql_path or sql_path == "" then return nil end
-
-  local sql_key
-  local db_file = vim.fs.find(".db", {
-    upward = true,
-    path = vim.fs.dirname(sql_path),
-  })[1]
-  if db_file then
-    local db_dir = vim.fn.fnamemodify(db_file, ":h")
-    if vim.startswith(sql_path, db_dir .. "/") then
-      local rel = sql_path:sub(#db_dir + 2)
-      sql_key = rel:gsub("%.sql$", ""):gsub("[/\\]", "_")
-    end
-  end
-  sql_key = sql_key or vim.fn.fnamemodify(sql_path, ":t:r")
-
-  local target_buf = bufnr or vim.fn.bufnr(sql_path)
-  local db_service = ""
-  if target_buf and target_buf > 0 and vim.api.nvim_buf_is_valid(target_buf) then
-    db_service = vim.b[target_buf].db_service or ""
-  elseif target_buf == 0 then
-    db_service = vim.b.db_service or ""
-  end
-
-  local safe_service = db_service ~= "" and db_service:gsub("[^%w%-_]", "_") or nil
-  local safe_sql_key = sql_key:gsub("[^%w%-_]", "_")
-
-  local base_dir = "/tmp/dadbodout_" .. vim.fn.getpid()
-  local subdir = safe_service
-    and (base_dir .. "/" .. safe_service .. "/" .. safe_sql_key)
-    or  (base_dir .. "/" .. safe_sql_key)
-  return subdir
+  return require("plugins.dadbod.results").get_subdir_for_sql(sql_path, bufnr)
 end
 
 M.user_closed_by_sql = state.user_closed_by_sql
@@ -520,21 +489,7 @@ end
 
 --- Try to find the matching SQL source path for a given dbout buffer path by matching their result directories
 function M.find_sql_path_for_dbout(dbout_path)
-  if not dbout_path or dbout_path == "" then return nil end
-  local dbout_dir = vim.fn.fnamemodify(dbout_path, ":h")
-
-  for _, bufnr in ipairs(vim.api.nvim_list_bufs()) do
-    if vim.api.nvim_buf_is_valid(bufnr) and vim.bo[bufnr].filetype == "sql" then
-      local sql_path = vim.api.nvim_buf_get_name(bufnr)
-      if sql_path and sql_path ~= "" then
-        local subdir = M.get_subdir_for_sql(sql_path, bufnr)
-        if subdir == dbout_dir then
-          return sql_path
-        end
-      end
-    end
-  end
-  return nil
+  return require("plugins.dadbod.results").find_sql_path_for_dbout(dbout_path)
 end
 
 return setmetatable(M, {

@@ -346,21 +346,12 @@ function M.update_last_result(sql_path, result_path)
 end
 
 local function get_subdir_for_sql(sql_path, bufnr)
-  return require("plugins.dadbod.shared").get_subdir_for_sql(sql_path, bufnr)
+  return require("plugins.dadbod.results").get_subdir_for_sql(sql_path, bufnr)
 end
 
 --- Returns the path of the newest Result_*.dbout in `subdir`, or nil if empty.
 local function get_latest_result(subdir)
-  if not subdir or subdir == "" then return nil end
-  local files = vim.fn.glob(subdir .. "/Result_*.dbout", true, true)
-  local best_counter, best_path = -1, nil
-  for _, f in ipairs(files) do
-    if vim.fn.filereadable(f) == 1 then
-      local n = tonumber(vim.fn.fnamemodify(f, ":t"):match("^Result_(%d+)_"))
-      if n and n > best_counter then best_counter, best_path = n, f end
-    end
-  end
-  return best_path
+  return require("plugins.dadbod.results").get_latest_result(subdir)
 end
 
 local function show_result_in_window(result_path, subdir, sql_source_path)
