@@ -34,8 +34,7 @@ if lazydev_ok then
   })
 end
 local blink_ok, blink = pcall(require, "blink.cmp")
-local mason_ok, mason = pcall(require, "mason")
-local mason_lspconfig_ok, mason_lspconfig = pcall(require, "mason-lspconfig")
+local mason = require("plugins.lsp.mason")
 
 -- Helper to dynamically detect SQL query context for smart completion sorting
 local function detect_sql_context(bufnr, row, col, line)
@@ -219,41 +218,7 @@ if blink_ok then
 end
 
 -- 2. Setup LSP installer (mason & mason-lspconfig)
-if mason_ok then
-  mason.setup({
-    ui = { border = "rounded" },
-  })
-
-  -- Hook Mason registry events to show installing progress notifications using Snacks
-  local registry_ok, registry = pcall(require, "mason-registry")
-  if registry_ok then
-    registry:on("package:install:start", function(pkg)
-      pcall(function()
-        utils.notify("mason_installing", pkg.name)
-      end)
-    end)
-
-    registry:on("package:install:success", function(pkg)
-      pcall(function()
-        utils.notify("mason_installed", pkg.name)
-      end)
-    end)
-
-    registry:on("package:install:failed", function(pkg)
-      pcall(function()
-        utils.notify("mason_install_failed", pkg.name)
-      end)
-    end)
-  end
-end
-
-if mason_lspconfig_ok then
-  mason_lspconfig.setup({
-    -- Do not install automatically on startup. Use :LspInstallAll to trigger manually.
-    ensure_installed = {},
-    automatic_enable = false,
-  })
-end
+mason.setup(utils)
 
 -- 3. Configure LSP servers via native Neovim 0.12+ APIs
 local capabilities = blink_ok and blink.get_lsp_capabilities() or vim.lsp.protocol.make_client_capabilities()
