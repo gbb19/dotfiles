@@ -91,6 +91,100 @@ local function handle_sql_buf_enter(args)
   end
 end
 
+local function is_dbout_win(win)
+  if not win or not vim.api.nvim_win_is_valid(win) then return false end
+  local bufnr = vim.api.nvim_win_get_buf(win)
+  if not vim.api.nvim_buf_is_valid(bufnr) then return false end
+  local filetype = vim.bo[bufnr].filetype
+  if filetype == "dbout" or filetype == "explain" then return true end
+  local name = vim.api.nvim_buf_get_name(bufnr)
+  return name:match("%.dbout$") ~= nil
+    or name:match("/Result_%d+_") ~= nil
+    or name:find("dadbodout", 1, true) ~= nil
+end
+
+local function is_normal_editor_win(win)
+  if not win or not vim.api.nvim_win_is_valid(win) then return false end
+  local config = vim.api.nvim_win_get_config(win)
+  if config and config.relative and config.relative ~= "" then return false end
+  return not is_dbout_win(win)
+end
+
+local function collect_windows()
+  local normal_count = 0
+  local dbout_wins = {}
+  for _, win in ipairs(vim.api.nvim_list_wins()) do
+    if is_dbout_win(win) then
+      table.insert(dbout_wins, win)
+    elseif is_normal_editor_win(win) then
+      normal_count = normal_count + 1
+    end
+  end
+  return normal_count, dbout_wins
+end
+
+local function close_dbout_windows(dbout_wins)
+  for _, win in ipairs(dbout_wins) do
+    pcall(function() vim.wo[win].winfixbuf = false end)
+    pcall(vim.api.nvim_win_close, win, true)
+  end
+end
+
+local function handle_quit_pre()
+  local normal_count, dbout_wins = collect_windows()
+  if normal_count <= 1 then close_dbout_windows(dbout_wins) end
+end
+
+local function handle_win_closed(args)
+  if state.is_deleting_result then return end
+
+  local win = tonumber(args.match)
+  if win and is_dbout_win(win) then
+    local bufnr = vim.api.nvim_win_get_buf(win)
+    local sql_source = vim.b[bufnr].sql_source_path
+    if sql_source and sql_source ~= "" then
+      local dbout_count = 0
+      for _, other in ipairs(vim.api.nvim_list_wins()) do
+        if other ~= win and is_dbout_win(other) then dbout_count = dbout_count + 1 end
+      end
+      if dbout_count == 0 then
+        require("plugins.dadbod.results").set_user_closed(sql_source, true)
+      end
+    end
+  end
+
+  vim.schedule(function()
+    local normal_count, dbout_wins = collect_windows()
+    if normal_count == 0 and #dbout_wins > 0 then
+      close_dbout_windows(dbout_wins)
+      local remaining = vim.api.nvim_list_wins()
+      if #remaining > 0 then
+        local only_dbout = true
+        for _, remaining_win in ipairs(remaining) do
+          if not is_dbout_win(remaining_win) then
+            only_dbout = false
+            break
+          end
+        end
+        if only_dbout then pcall(vim.cmd, "quit") end
+      end
+    end
+  end)
+end
+
+local function handle_dbout_buf_enter(args)
+  local bufnr = args.buf
+  local results = require("plugins.dadbod.results")
+  local sql_path = vim.b[bufnr].sql_source_path
+  if not sql_path or sql_path == "" then
+    sql_path = results.find_sql_path_for_dbout(vim.api.nvim_buf_get_name(bufnr))
+    if sql_path then vim.b[bufnr].sql_source_path = sql_path end
+  end
+  if sql_path and sql_path ~= "" then
+    state.last_result_by_sql[sql_path] = vim.api.nvim_buf_get_name(bufnr)
+  end
+end
+
 --- Register buffer setup and query execution lifecycle events.
 --- @param opts { group: integer, setup_sql: function }
 function M.setup(opts)
@@ -122,6 +216,29 @@ function M.setup(opts)
     pattern = "*.sql",
     group = opts.group,
     callback = handle_sql_buf_enter,
+  })
+
+  vim.api.nvim_create_autocmd("QuitPre", {
+    group = opts.group,
+    callback = handle_quit_pre,
+  })
+
+  vim.api.nvim_create_autocmd("WinClosed", {
+    group = opts.group,
+    callback = handle_win_closed,
+  })
+
+  vim.api.nvim_create_autocmd("BufEnter", {
+    pattern = "*.dbout",
+    group = opts.group,
+    callback = handle_dbout_buf_enter,
+  })
+
+  vim.api.nvim_create_autocmd("VimLeavePre", {
+    group = opts.group,
+    callback = function()
+      vim.fn.delete("/tmp/dadbodout_" .. vim.fn.getpid(), "rf")
+    end,
   })
 end
 

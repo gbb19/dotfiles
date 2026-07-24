@@ -163,7 +163,7 @@ Acceptance criteria:
 
 ## Refactor: Split Dadbod Runtime Responsibilities
 
-- [ ] Add `autocmds.lua` for SQL and dbout lifecycle events.
+- [x] Add `autocmds.lua` for SQL and dbout lifecycle events.
 - [x] Add `buffers.lua` for SQL/dbout buffer setup and buffer-local mappings.
 - [x] Add `results.lua` for result paths, rename, display, and window lifecycle.
 - [x] Add `jobs.lua` for background process tracking and cancellation.
