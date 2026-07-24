@@ -32,3 +32,7 @@ nvim --headless -n -i NONE \
 nvim --headless -n -i NONE \
   "+luafile tests/lsp_config.lua" \
   +qa
+
+nvim --headless -n -i NONE \
+  "+luafile tests/plugin_entrypoints.lua" \
+  +qa

@@ -296,7 +296,7 @@ Acceptance criteria:
 - [x] Capture current LSP, completion, and Mason behavior before splitting modules.
 - [x] Add headless tests for pure Git parsing.
 - [x] Add headless tests for SQL parsing and result-path generation.
-- [ ] Add smoke tests for keymap registration and plugin entry points.
+- [x] Add smoke tests for keymap registration and plugin entry points.
 - [ ] Document external dependencies: Git, ripgrep, fd, database CLIs, tmux, and OSC 52 terminal support.
 - [ ] Run `:checkhealth` after the final refactor.
 - [ ] Measure empty startup and first-file startup after the final refactor.
