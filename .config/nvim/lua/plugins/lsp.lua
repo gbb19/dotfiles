@@ -42,6 +42,7 @@ end
 local mason = require("plugins.lsp.mason")
 local diagnostics = require("plugins.lsp.diagnostics")
 local completion = require("plugins.lsp.completion")
+local attach = require("plugins.lsp.attach")
 
 -- Helper to dynamically detect SQL query context for smart completion sorting
 local function detect_sql_context(bufnr, row, col, line)
@@ -234,9 +235,7 @@ for _, server in ipairs(languages.lsp_servers) do
 end
 
 -- LSP Keymaps setup using LspAttach autocmd (SOLID - Loose Coupling)
-vim.api.nvim_create_autocmd("LspAttach", {
-  group = vim.api.nvim_create_augroup("UserLspConfig", {}),
-  callback = function(ev)
+attach.setup(function(ev)
     local opts = { buffer = ev.buf }
     local client = vim.lsp.get_client_by_id(ev.data.client_id)
     if not client then
@@ -352,7 +351,6 @@ vim.api.nvim_create_autocmd("LspAttach", {
     if ok and server_config.on_attach then
       server_config.on_attach(client, ev.buf)
     end
-  end,
-})
+end)
 
 diagnostics.setup(utils)
