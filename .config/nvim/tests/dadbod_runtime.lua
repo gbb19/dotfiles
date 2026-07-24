@@ -59,7 +59,38 @@ check(
 cell.yank_csv()
 check(vim.fn.getreg('"') == "id,name\n1,O'Neil", "dbout CSV generation changed")
 
+vim.wo.winfixbuf = false
 vim.api.nvim_buf_delete(dbout_buf, { force = true })
+
+local sql_buf = vim.api.nvim_create_buf(false, true)
+vim.api.nvim_buf_set_name(sql_buf, "/tmp/dadbod_runtime.sql")
+vim.api.nvim_set_current_buf(sql_buf)
+vim.bo[sql_buf].filetype = "sql"
+
+local expected_sql_maps = {
+  [" rr"] = "Run SQL Block",
+  [" rc"] = "Copy Results as CSV",
+  [" rj"] = "Copy Results as JSON",
+  [" rp"] = "Explain Performance (Clean)",
+  [" rv"] = "Explain Performance (Verbose)",
+  [" ro"] = "Open Last Result for this SQL file",
+  [" rs"] = "Switch Database Environment",
+  [" rf"] = "Find & Insert DB Table",
+  [" ri"] = "Inspect DB Schema & Tables (View Only)",
+  [" rh"] = "Query Result History",
+  [" rx"] = "Clear Query History",
+  ["K"] = "Show Table Detail (Hover)",
+}
+
+local sql_maps = {}
+for _, map in ipairs(vim.api.nvim_buf_get_keymap(sql_buf, "n")) do
+  sql_maps[map.lhs] = map.desc
+end
+for lhs, description in pairs(expected_sql_maps) do
+  check(sql_maps[lhs] == description, ("SQL buffer keymap changed: %s"):format(lhs))
+end
+
+vim.api.nvim_buf_delete(sql_buf, { force = true })
 
 for _, name in ipairs({
   "run_sql_block",
