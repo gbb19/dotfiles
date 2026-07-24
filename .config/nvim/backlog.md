@@ -91,6 +91,8 @@ Potential performance work, tracked separately as a `fix:` or `perf:` commit:
 
 ## Feature: Git Worktree Workflow
 
+> Deferred by user; do not implement in this refactor cycle.
+
 - [ ] Add `lua/core/git/worktree.lua`.
 - [ ] Parse `git worktree list --porcelain` into structured entries.
 - [ ] Add `<leader>gw` to open a Snacks worktree picker.
@@ -184,9 +186,10 @@ Acceptance criteria:
 ## Refactor: Split Snacks Configuration by Domain
 
 - [ ] Convert `lua/plugins/snacks.lua` to `lua/plugins/snacks/init.lua`.
-- [ ] Add focused modules for files, grep, Git, buffers, and keymaps.
+- [x] Add focused modules for files, grep, Git, and keymaps.
+- [ ] Add focused module for buffers.
 - [ ] Keep `snacks.setup()` and package registration in the entry point.
-- [ ] Keep picker state private to the module that owns the picker.
+- [x] Keep picker state private to the module that owns the picker.
 
 Suggested structure:
 
