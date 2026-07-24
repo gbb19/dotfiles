@@ -209,23 +209,8 @@ attach.setup(function(ev)
       return
     end
 
-    -- Automatically disable formatting for LSP clients if conform has a formatter configured
-    -- for the buffer's filetype. This prevents double-formatting conflicts.
-    local conform_ok, conform = pcall(require, "conform")
-    if conform_ok then
-      local formatters = conform.list_formatters(ev.buf)
-      local has_available_formatter = false
-      for _, f in ipairs(formatters or {}) do
-        if f.available then
-          has_available_formatter = true
-          break
-        end
-      end
-      if has_available_formatter then
-        client.server_capabilities.documentFormattingProvider = false
-        client.server_capabilities.documentRangeFormattingProvider = false
-      end
-    end
+    -- Prevent LSP and Conform from formatting the same buffer.
+    attach.disable_formatting_if_conform(client, ev.buf)
 
     -- 1. Enable inlay hints by default (toggle with <leader>ci)
     vim.lsp.inlay_hint.enable(true, { bufnr = ev.buf })
