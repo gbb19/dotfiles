@@ -39,14 +39,7 @@ snacks.setup({
       end,
     },
   },
-  input = {
-    enabled = true,
-    win = {
-      keys = {
-        ["<C-l>"] = { function(self) vim.api.nvim_buf_set_lines(self.buf, 0, -1, false, { "" }) end, mode = { "i", "n" } },
-      },
-    },
-  },
+  input = { enabled = true },
   picker = {
     enabled = true, ui_select = true,
     win = { input = { keys = {
@@ -56,7 +49,7 @@ snacks.setup({
       ["<M-l>"] = { "preview_scroll_right", mode = { "i", "n" } },
       ["<C-l>"] = { "clear_search", mode = { "i", "n" } },
     } } },
-    actions = { clear_search = function(picker) picker.input:set("") end },
+    actions = { clear_search = function(picker) picker.input:set("", "") end },
   },
   notifier = { enabled = true },
   indent = { enabled = true, char = "│", animate = { enabled = false }, scope = { enabled = true } },
