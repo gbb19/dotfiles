@@ -170,60 +170,13 @@ local _branch_preview_timer = nil
 local function open_git_branches_picker(opts)
   ensure_unfixed_window()
   opts = opts or {}
+  local git_branches = require("core.git.branches")
   Snacks.picker(vim.tbl_deep_extend("force", {
     source = "git_branches",
     title = "Git Branches",
     finder = function(picker_opts, ctx)
       local root = ctx:git_root()
-      local items = {}
-
-      -- 1. Local branches (sorted by committerdate: most recent first)
-      local local_out = vim.fn.systemlist({ "git", "-c", "core.quotepath=false", "branch", "--no-color", "-vv", "--sort=-committerdate" })
-      if vim.v.shell_error == 0 then
-        for _, line in ipairs(local_out) do
-          if line ~= "" and not line:find("HEAD%s*%->") then
-            local status, branch = line:match("^(.)%s+(%S+)")
-            if branch then
-              local status_str = line:match("%[%S+:%s*([^%]]+)%]")
-              local ahead = status_str and status_str:match("ahead%s+(%d+)")
-              local behind = status_str and status_str:match("behind%s+(%d+)")
-              local gone = status_str == "gone"
-
-              table.insert(items, {
-                text = branch,
-                branch = branch,
-                commit = branch,
-                is_remote = false,
-                cwd = root,
-                current = status == "*",
-                ahead = ahead and tonumber(ahead) or nil,
-                behind = behind and tonumber(behind) or nil,
-                gone = gone,
-              })
-            end
-          end
-        end
-      end
-
-      -- 2. Remote branches (sorted by committerdate: most recent first)
-      local remote_out = vim.fn.systemlist({ "git", "-c", "core.quotepath=false", "branch", "--no-color", "-r", "--sort=-committerdate" })
-      if vim.v.shell_error == 0 then
-        for _, line in ipairs(remote_out) do
-          local trimmed = vim.trim(line)
-          if trimmed ~= "" and not trimmed:find("HEAD%s*%->") then
-            table.insert(items, {
-              text = trimmed,
-              branch = trimmed,
-              commit = trimmed,
-              is_remote = true,
-              cwd = root,
-              current = false,
-            })
-          end
-        end
-      end
-
-      return ctx.filter:filter(items)
+      return ctx.filter:filter(git_branches.list(root))
     end,
     format = function(item, picker)
       local a = Snacks.picker.util.align

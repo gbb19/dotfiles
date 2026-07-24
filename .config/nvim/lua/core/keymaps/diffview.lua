@@ -1,5 +1,7 @@
 -- Lazy load diffview on :Diffview* commands
 local utils = require("core.utils")
+local git_branches = require("core.git.branches")
+local git_repo = require("core.git.repo")
 
 vim.api.nvim_create_user_command("DiffviewOpen", function(opts)
   require("plugins.diffview")
@@ -44,19 +46,9 @@ end
 
 local _branch_cache = {}
 
-local function git_root()
-  local root = vim.trim(vim.fn.system({ "git", "rev-parse", "--show-toplevel" }))
-  return (vim.v.shell_error == 0 and root ~= "") and root or nil
-end
-
-local function current_branch()
-  local br = vim.trim(vim.fn.system({ "git", "rev-parse", "--abbrev-ref", "HEAD" }))
-  return (vim.v.shell_error == 0 and br ~= "") and br or nil
-end
-
 local function cache_key()
-  local root = git_root() or vim.fn.getcwd()
-  local br = current_branch() or "HEAD"
+  local root = git_repo.root() or vim.fn.getcwd()
+  local br = git_repo.current_branch() or "HEAD"
   return root .. ":" .. br
 end
 
@@ -97,55 +89,7 @@ local function resolve_base_branch(callback)
       title = "Select Base Branch for Diff",
       finder = function(picker_opts, ctx)
         local root = ctx:git_root()
-        local items = {}
-
-        -- 1. Local branches (sorted by committerdate: most recent first)
-        local local_out = vim.fn.systemlist({ "git", "-c", "core.quotepath=false", "branch", "--no-color", "-vv", "--sort=-committerdate" })
-        if vim.v.shell_error == 0 then
-          for _, line in ipairs(local_out) do
-            if line ~= "" and not line:find("HEAD%s*%->") then
-              local status, branch = line:match("^(.)%s+(%S+)")
-              if branch then
-                local status_str = line:match("%[%S+:%s*([^%]]+)%]")
-                local ahead = status_str and status_str:match("ahead%s+(%d+)")
-                local behind = status_str and status_str:match("behind%s+(%d+)")
-                local gone = status_str == "gone"
-
-                table.insert(items, {
-                  text = branch,
-                  branch = branch,
-                  commit = branch,
-                  is_remote = false,
-                  cwd = root,
-                  current = status == "*",
-                  ahead = ahead and tonumber(ahead) or nil,
-                  behind = behind and tonumber(behind) or nil,
-                  gone = gone,
-                })
-              end
-            end
-          end
-        end
-
-        -- 2. Remote branches (sorted by committerdate: most recent first)
-        local remote_out = vim.fn.systemlist({ "git", "-c", "core.quotepath=false", "branch", "--no-color", "-r", "--sort=-committerdate" })
-        if vim.v.shell_error == 0 then
-          for _, line in ipairs(remote_out) do
-            local trimmed = vim.trim(line)
-            if trimmed ~= "" and not trimmed:find("HEAD%s*%->") then
-              table.insert(items, {
-                text = trimmed,
-                branch = trimmed,
-                commit = trimmed,
-                is_remote = true,
-                cwd = root,
-                current = false,
-              })
-            end
-          end
-        end
-
-        return ctx.filter:filter(items)
+        return ctx.filter:filter(git_branches.list(root))
       end,
       format = function(item, picker)
         local a = Snacks.picker.util.align
@@ -273,8 +217,8 @@ local function open_line_feature_diff()
     return
   end
 
-  local git_root = vim.trim(vim.fn.system({ "git", "rev-parse", "--show-toplevel" }))
-  if vim.v.shell_error ~= 0 or git_root == "" then
+  local git_root = git_repo.root()
+  if not git_root then
     utils.notify("git_not_repo")
     return
   end
@@ -366,4 +310,3 @@ local function open_line_feature_diff()
 end
 
 vim.keymap.set("n", "<leader>gm", open_line_feature_diff, { desc = "View Merge/Feature Diff for Current Line" })
-
