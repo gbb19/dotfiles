@@ -2,8 +2,7 @@
 -- Disk-based query result history manager, status index popups, and cleanup.
 
 local M = {}
-
-M.last_dbout_dir = nil
+local state = require("plugins.dadbod.state")
 
 --- Get the stable query result subdirectory path for a given SQL file (internal helper)
 local function get_subdir_for_sql(sql_path, bufnr)
@@ -55,7 +54,7 @@ function M.get_result_files(current_path)
     local sql_path = vim.api.nvim_buf_get_name(bufnr)
     dir = get_subdir_for_sql(sql_path, bufnr)
   else
-    dir = M.last_dbout_dir
+    dir = state.last_dbout_dir
   end
 
   if not dir or dir == "" then
@@ -189,17 +188,17 @@ function M.delete_current_result()
   end
 
   local shared = require("plugins.dadbod.shared")
-  shared.is_deleting_result = true
+  state.is_deleting_result = true
 
   -- Delete physical file on disk if path exists
   if current_path and current_path ~= "" then
     pcall(os.remove, current_path)
   end
 
-  -- Update cache in init.lua so deleted files are invalidated
+  -- Update the shared result cache so deleted files are invalidated
   if sql_path then
     local new_last = (target_buf and vim.api.nvim_buf_is_valid(target_buf)) and vim.api.nvim_buf_get_name(target_buf) or nil
-    require("plugins.dadbod.init").update_last_result(sql_path, new_last)
+    state.update_last_result(sql_path, new_last)
     if not new_last then
       shared.set_user_closed(sql_path, true)
     end
@@ -215,7 +214,7 @@ function M.delete_current_result()
 
   -- Wipe out buffer
   pcall(vim.cmd, "bwipeout! " .. bufnr)
-  shared.is_deleting_result = false
+  state.is_deleting_result = false
   require("core.utils").notify("db_deleted_result")
 end
 
@@ -327,4 +326,17 @@ function M.clear_all_results()
   end)
 end
 
-return M
+return setmetatable(M, {
+  __index = function(_, key)
+    if key == "last_dbout_dir" then
+      return state.last_dbout_dir
+    end
+  end,
+  __newindex = function(_, key, value)
+    if key == "last_dbout_dir" then
+      state.last_dbout_dir = value
+    else
+      rawset(M, key, value)
+    end
+  end,
+})

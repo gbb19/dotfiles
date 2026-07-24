@@ -12,6 +12,7 @@ vim.pack.add({
 vim.g.db_ui_disable_info_notifications = 1
 
 local M = {}
+local state = require("plugins.dadbod.state")
 
 -- Create custom setup autocommand group
 local group = vim.api.nvim_create_augroup("DadbodCustomSetup", { clear = true })
@@ -329,25 +330,19 @@ vim.api.nvim_create_autocmd({ "FileType", "BufReadPost", "BufEnter", "BufWinEnte
 })
 
 -- Track active Fidget handles per output file path
-local _query_handles = {}
+local _query_handles = state.query_handles
 
 -- Registry: maps output file_path → SQL source bufnr captured at DBExecutePre time.
 -- Needed because db_input on the dbout buffer is a dadbod temp file, not the real SQL path.
-local _sql_source_by_output = {}
+local _sql_source_by_output = state.sql_source_by_output
 
 -- Registry: maps sql_source_path → last opened/visited dbout file path.
 -- Keeps track of what specific result buffer the user viewed last for this SQL file.
-local _last_result_by_sql = {}
+local _last_result_by_sql = state.last_result_by_sql
 
 --- Updates or invalidates the cached last dbout file path for a SQL buffer
 function M.update_last_result(sql_path, result_path)
-  if sql_path and sql_path ~= "" then
-    if result_path and result_path ~= "" and vim.fn.filereadable(result_path) == 1 then
-      _last_result_by_sql[sql_path] = result_path
-    else
-      _last_result_by_sql[sql_path] = nil
-    end
-  end
+  state.update_last_result(sql_path, result_path)
 end
 
 local function get_subdir_for_sql(sql_path, bufnr)
@@ -526,7 +521,7 @@ vim.api.nvim_create_autocmd("User", {
 
     -- Store active output folder path for global query history lookup
     -- Point history tracker at the subdir so [b/]b sees only results from this SQL file
-    require("plugins.dadbod.history").last_dbout_dir = subdir
+    state.last_dbout_dir = subdir
 
     local db = vim.b[bufnr].db or {}
     if type(db) == "table" then
@@ -711,7 +706,7 @@ vim.api.nvim_create_autocmd("BufEnter", {
               vim.b[target_buf].sql_source_path = sql_path
             end
             shared.set_win_buf_safely(dbout_win, target_buf)
-            require("plugins.dadbod.history").last_dbout_dir = subdir
+            state.last_dbout_dir = subdir
           end
         end
       end

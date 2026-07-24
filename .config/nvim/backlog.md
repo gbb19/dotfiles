@@ -126,11 +126,11 @@ Acceptance criteria:
 
 ## Refactor: Dadbod Dependency Cycles
 
-- [ ] Add `lua/plugins/dadbod/state.lua`.
-- [ ] Move shared mutable runtime state into `state.lua`.
-- [ ] Remove the `init -> history -> init` cycle.
-- [ ] Remove the `shared -> history -> shared` cycle.
-- [ ] Make `init.lua` an orchestration entry point instead of a state owner.
+- [x] Add `lua/plugins/dadbod/state.lua`.
+- [x] Move shared mutable runtime state into `state.lua`.
+- [x] Remove the `init -> history -> init` cycle.
+- [x] Remove the `shared -> history -> shared` cycle.
+- [x] Make `init.lua` an orchestration entry point instead of a state owner.
 
 State candidates:
 

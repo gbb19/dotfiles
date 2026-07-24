@@ -4,6 +4,7 @@
 -- completion-item conversion, and active background job tracking.
 
 local M = {}
+local state = require("plugins.dadbod.state")
 
 -- Registry of active metadata-fetching jobs keyed by bufnr.
 -- Allows us to kill them on :q! or buffer close so Neovim never hangs.
@@ -488,8 +489,7 @@ function M.get_subdir_for_sql(sql_path, bufnr)
   return subdir
 end
 
-M.user_closed_by_sql = {}
-M.is_deleting_result = false
+M.user_closed_by_sql = state.user_closed_by_sql
 
 function M.is_user_closed(sql_path)
   if not sql_path or sql_path == "" then return false end
@@ -518,7 +518,7 @@ function M.show_result_in_window(result_path, subdir, sql_source_path)
   end
 
   local orig_win = vim.api.nvim_get_current_win()
-  require("plugins.dadbod.history").last_dbout_dir = subdir
+  state.last_dbout_dir = subdir
 
   if target_buf == -1 then
     target_buf = vim.fn.bufadd(result_path)
@@ -598,4 +598,17 @@ function M.find_sql_path_for_dbout(dbout_path)
   return nil
 end
 
-return M
+return setmetatable(M, {
+  __index = function(_, key)
+    if key == "is_deleting_result" then
+      return state.is_deleting_result
+    end
+  end,
+  __newindex = function(_, key, value)
+    if key == "is_deleting_result" then
+      state.is_deleting_result = value
+    else
+      rawset(M, key, value)
+    end
+  end,
+})
