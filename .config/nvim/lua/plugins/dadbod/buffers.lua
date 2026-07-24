@@ -66,4 +66,85 @@ function M.setup_sql(args, handlers)
   vim.keymap.set("n", "<leader>rx", require("plugins.dadbod.history").clear_all_results, vim.tbl_extend("force", opts, { desc = "Clear Query History" }))
 end
 
+local function map_result_history(bufnr, direction)
+  local current_path = vim.api.nvim_buf_get_name(0)
+  local history = require("plugins.dadbod.history")
+  local result_files = history.get_result_files(current_path)
+  if #result_files == 0 then return end
+
+  local current_idx
+  for index, item in ipairs(result_files) do
+    if item.path == current_path then
+      current_idx = index
+      break
+    end
+  end
+  if not current_idx then return end
+
+  local target_idx = current_idx + direction
+  if target_idx == 0 then target_idx = #result_files end
+  if target_idx > #result_files then target_idx = 1 end
+
+  local target = result_files[target_idx]
+  local target_buf = vim.fn.bufnr(target.path)
+  if target_buf == -1 then
+    target_buf = vim.fn.bufadd(target.path)
+    vim.fn.bufload(target_buf)
+  end
+
+  local current_sql = vim.b[bufnr].sql_source_path
+  if current_sql then
+    vim.b[target_buf].sql_source_path = current_sql
+  end
+
+  require("plugins.dadbod.results").set_win_buf_safely(0, target_buf)
+  history.show_history_popup(result_files, target.path)
+end
+
+--- Configure a dbout result buffer and its local mappings.
+--- @param args table
+function M.setup_dbout(args)
+  local bufnr = args and args.buf or vim.api.nvim_get_current_buf()
+  require("plugins.dadbod.format").truncate_dbout_buffer(bufnr)
+  vim.cmd("setlocal nowrap")
+
+  local wins = vim.fn.win_findbuf(bufnr)
+  if #wins > 0 then
+    local half_width = math.floor(vim.o.columns * 0.5)
+    pcall(vim.api.nvim_win_set_width, wins[1], half_width)
+    for _, win in ipairs(wins) do
+      if vim.api.nvim_win_is_valid(win) then
+        vim.wo[win].winfixbuf = true
+      end
+    end
+  end
+
+  local opts = { buffer = bufnr, silent = true }
+  local cell = require("plugins.dadbod.cell")
+  local history = require("plugins.dadbod.history")
+
+  vim.keymap.set("n", "gz", cell.show_cell_detail, vim.tbl_extend("force", opts, { desc = "Inspect full cell value" }))
+  vim.keymap.set("n", "K", cell.show_cell_detail, vim.tbl_extend("force", opts, { desc = "Inspect full cell value (Hover)" }))
+  vim.keymap.set("n", "gW", function() require("plugins.dadbod.format").toggle_dbout_column_width(bufnr) end, vim.tbl_extend("force", opts, { desc = "Toggle fixed column width" }))
+  vim.keymap.set("n", "<Tab>", function() require("plugins.dadbod.format").jump_column("next") end, vim.tbl_extend("force", opts, { desc = "Next Column" }))
+  vim.keymap.set("n", "<S-Tab>", function() require("plugins.dadbod.format").jump_column("prev") end, vim.tbl_extend("force", opts, { desc = "Previous Column" }))
+  vim.keymap.set("n", "gh", "1G", vim.tbl_extend("force", opts, { desc = "Jump to Header" }))
+  vim.keymap.set({ "o", "x" }, "ic", function() cell.select_cell(false) end, vim.tbl_extend("force", opts, { desc = "inner cell" }))
+  vim.keymap.set({ "o", "x" }, "ac", function() cell.select_cell(true) end, vim.tbl_extend("force", opts, { desc = "around cell" }))
+  vim.keymap.set("n", "yic", function() cell.yank_cell(false) end, vim.tbl_extend("force", opts, { desc = "Yank full inner cell" }))
+  vim.keymap.set("n", "yac", function() cell.yank_cell(true) end, vim.tbl_extend("force", opts, { desc = "Yank full around cell" }))
+  vim.keymap.set({ "n", "x" }, "yin", cell.yank_in_clause, vim.tbl_extend("force", opts, { desc = "Yank Column as SQL IN Condition" }))
+  vim.keymap.set({ "n", "x" }, "<leader>yi", cell.yank_in_clause, vim.tbl_extend("force", opts, { desc = "Yank Column as SQL IN Condition" }))
+  vim.keymap.set({ "n", "x" }, "yis", cell.yank_insert_statements, vim.tbl_extend("force", opts, { desc = "Yank Rows as SQL INSERT Statement" }))
+  vim.keymap.set({ "n", "x" }, "<leader>ys", cell.yank_insert_statements, vim.tbl_extend("force", opts, { desc = "Yank Rows as SQL INSERT Statement" }))
+  vim.keymap.set({ "n", "x" }, "<leader>yc", cell.yank_csv, vim.tbl_extend("force", opts, { desc = "Yank Rows as CSV" }))
+  vim.keymap.set({ "n", "x" }, "<leader>rc", cell.yank_csv, vim.tbl_extend("force", opts, { desc = "Yank Rows as CSV" }))
+  vim.keymap.set("x", "yic", cell.yank_csv, vim.tbl_extend("force", opts, { desc = "Yank Rows as CSV" }))
+  vim.keymap.set("n", "<leader>rq", history.delete_current_result, vim.tbl_extend("force", opts, { desc = "Delete Result Buffer & File" }))
+  vim.keymap.set("n", "[b", function() map_result_history(bufnr, -1) end, vim.tbl_extend("force", opts, { desc = "Previous Result Buffer" }))
+  vim.keymap.set("n", "]b", function() map_result_history(bufnr, 1) end, vim.tbl_extend("force", opts, { desc = "Next Result Buffer" }))
+  vim.keymap.set("n", "<leader>rh", history.switch_result_history, vim.tbl_extend("force", opts, { desc = "Query Result History" }))
+  vim.keymap.set("n", "<leader>rx", history.clear_all_results, vim.tbl_extend("force", opts, { desc = "Clear Query History" }))
+end
+
 return M
