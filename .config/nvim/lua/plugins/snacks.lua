@@ -119,16 +119,7 @@ local function ensure_unfixed_window()
   return vim.api.nvim_get_current_win()
 end
 
-require("plugins.snacks.files").setup({
-  ensure_unfixed_window = ensure_unfixed_window,
-  picker_resume = picker_resume,
-})
-
-require("plugins.snacks.git").setup({
-  ensure_unfixed_window = ensure_unfixed_window,
-})
-
-require("plugins.snacks.grep").setup({
+require("plugins.snacks.keymaps").setup({
   ensure_unfixed_window = ensure_unfixed_window,
   picker_resume = picker_resume,
 })
