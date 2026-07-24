@@ -193,103 +193,10 @@ vim.keymap.set("n", "<leader>gc", function()
   open_git_branches_picker()
 end, { desc = "Git Checkout Branch (Local First + MRU)" })
 
-local _grep_last_include = nil
-local _grep_last_exclude = nil
-local _grep_last_search = ""
-local _grep_reset_pending = false
-
-local function build_grep_args(include, exclude)
-  local args = {}
-  for _, pat in ipairs(vim.split(include or "", "[,%s]+", { trimempty = true })) do
-    vim.list_extend(args, { "--glob", pat })
-  end
-  for _, pat in ipairs(vim.split(exclude or "", "[,%s]+", { trimempty = true })) do
-    vim.list_extend(args, { "--glob", "!" .. pat })
-  end
-  return args
-end
-
--- Full reset: next <leader>fg (no count) will go through include/exclude prompts again
-local function reset_grep_filters()
-  _grep_last_include = nil
-  _grep_last_exclude = nil
-  _grep_last_search = ""
-end
-
-local function open_grep(include, exclude, search)
-  ensure_unfixed_window()
-  local args = build_grep_args(include, exclude)
-  _grep_reset_pending = false
-
-  picker_resume.open("grep", Snacks.picker.grep, {
-    args = #args > 0 and args or nil,
-    search = search,
-    win = {
-      input = {
-        keys = {
-          ["<C-c>"] = { "grep_force_reset", mode = { "i", "n" } },
-        },
-      },
-    },
-    actions = {
-      grep_force_reset = function(picker)
-        _grep_reset_pending = true
-        picker:close()
-      end,
-    },
-    on_close = function(picker)
-      local q = picker.input.filter.search
-
-      if _grep_reset_pending or not q or vim.trim(q) == "" then
-        reset_grep_filters()
-        return
-      end
-
-      _grep_last_search = q
-    end,
-  })
-end
-
-vim.keymap.set("n", "<leader>fg", function()
-  ensure_unfixed_window()
-  local has_resume_state = picker_resume.has("grep")
-  local force_filter_prompts = _grep_reset_pending
-
-  if vim.v.count == 0 and has_resume_state and not force_filter_prompts then
-    picker_resume.resume("grep")
-    return
-  end
-
-  vim.ui.input({
-    prompt = "  Grep include (glob, Esc=skip): ",
-    default = _grep_last_include or "",
-  }, function(include)
-    if include == nil then
-      if has_resume_state and not force_filter_prompts then
-        picker_resume.resume("grep")
-      else
-        open_grep(_grep_last_include or "", _grep_last_exclude or "", _grep_last_search)
-      end
-      return
-    end
-    _grep_last_include = include
-
-    vim.ui.input({
-      prompt = "  Grep exclude (glob, Esc=skip): ",
-      default = _grep_last_exclude or "",
-    }, function(exclude)
-      exclude = exclude or (_grep_last_exclude or "")
-      _grep_last_exclude = exclude
-      open_grep(_grep_last_include, exclude, _grep_last_search)
-    end)
-  end)
-end, { desc = "Live Grep (Resume; [count]=edit filters)" })
-
-vim.keymap.set("n", "<leader>fG", function()
-  ensure_unfixed_window()
-  reset_grep_filters()
-  picker_resume.open("grep", Snacks.picker.grep)
-end, { desc = "Live Grep (Fresh Search)" })
+require("plugins.snacks.grep").setup({
+  ensure_unfixed_window = ensure_unfixed_window,
+  picker_resume = picker_resume,
+})
 
 local function is_buffer_pinned(bufnr)
   local g_ok, groups = pcall(require, "bufferline.groups")
