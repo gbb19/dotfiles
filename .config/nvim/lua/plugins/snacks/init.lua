@@ -39,7 +39,14 @@ snacks.setup({
       end,
     },
   },
-  input = { enabled = true },
+  input = {
+    enabled = true,
+    win = {
+      keys = {
+        ["<C-l>"] = { function(self) vim.api.nvim_buf_set_lines(self.buf, 0, -1, false, { "" }) end, mode = { "i", "n" } },
+      },
+    },
+  },
   picker = {
     enabled = true, ui_select = true,
     win = { input = { keys = {
