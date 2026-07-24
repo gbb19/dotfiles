@@ -145,6 +145,7 @@ end
 
 vim.keymap.set("n", "<leader>fb", function()
   ensure_unfixed_window()
+  return
   Snacks.picker({
     source = "buffers",
     title = "Buffers",
