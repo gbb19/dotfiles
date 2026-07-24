@@ -358,25 +358,7 @@ function M.yank_in_clause()
     return
   end
 
-  -- Format values for SQL IN clause
-  local formatted_items = {}
-  for _, val in ipairs(values) do
-    if val:upper() == "NULL" then
-      table.insert(formatted_items, "NULL")
-    elseif val:match("^%-?%d+%.?%d*$") or val:lower() == "true" or val:lower() == "false" then
-      table.insert(formatted_items, val)
-    else
-      local escaped = val:gsub("'", "''")
-      table.insert(formatted_items, "'" .. escaped .. "'")
-    end
-  end
-
-  local in_clause
-  if col_name ~= "" then
-    in_clause = col_name .. " IN (" .. table.concat(formatted_items, ", ") .. ")"
-  else
-    in_clause = "IN (" .. table.concat(formatted_items, ", ") .. ")"
-  end
+  local in_clause = require("plugins.dadbod.export").build_in_clause(col_name, values)
 
   vim.fn.setreg("+", in_clause)
   vim.fn.setreg('"', in_clause)
@@ -455,7 +437,7 @@ function M.yank_insert_statements()
   -- Retrieve un-truncated original lines if available
   local original_lines = vim.b[bufnr].original_lines or lines
 
-  local value_tuples = {}
+  local selected_rows = {}
 
   for row = start_row, end_row do
     local raw_line = original_lines[row] or lines[row]
@@ -470,35 +452,22 @@ function M.yank_insert_statements()
       end
 
       if #cells > 0 then
-        local formatted_cells = {}
-        for i = 1, #col_names do
-          local val = cells[i] or ""
-          if val == "" or val:upper() == "NULL" then
-            table.insert(formatted_cells, "NULL")
-          elseif val:match("^%-?%d+%.?%d*$") or val:lower() == "true" or val:lower() == "false" then
-            table.insert(formatted_cells, val)
-          else
-            local escaped = val:gsub("'", "''")
-            table.insert(formatted_cells, "'" .. escaped .. "'")
-          end
-        end
-        table.insert(value_tuples, "  (" .. table.concat(formatted_cells, ", ") .. ")")
+        table.insert(selected_rows, cells)
       end
     end
   end
 
-  if #value_tuples == 0 then
+  if #selected_rows == 0 then
     require("core.utils").notify("db_empty_cell")
     return
   end
 
-  local cols_str = table.concat(col_names, ", ")
-  local insert_sql = string.format("INSERT INTO %s (%s) VALUES\n%s;", table_name, cols_str, table.concat(value_tuples, ",\n"))
+  local insert_sql = require("plugins.dadbod.export").build_insert(table_name, col_names, selected_rows)
 
   vim.fn.setreg("+", insert_sql)
   vim.fn.setreg('"', insert_sql)
 
-  require("core.utils").notify("db_copied_insert_statement", string.format("%d row(s) into %s", #value_tuples, table_name))
+  require("core.utils").notify("db_copied_insert_statement", string.format("%d row(s) into %s", #selected_rows, table_name))
 end
 
 --- Extract rows under cursor or visual selection in dbout buffer and copy as CSV
@@ -542,26 +511,10 @@ function M.yank_csv()
 
   if #col_names == 0 then return end
 
-  local function format_csv_field(val)
-    if not val then return "" end
-    if val:match('[",\n\r]') then
-      return '"' .. val:gsub('"', '""') .. '"'
-    end
-    return val
-  end
-
-  -- Header row as CSV
-  local csv_lines = {}
-  local formatted_headers = {}
-  for _, col in ipairs(col_names) do
-    table.insert(formatted_headers, format_csv_field(col))
-  end
-  table.insert(csv_lines, table.concat(formatted_headers, ","))
-
   -- Retrieve un-truncated original lines if available
   local original_lines = vim.b[bufnr].original_lines or lines
 
-  local row_count = 0
+  local selected_rows = {}
   for row = start_row, end_row do
     local raw_line = original_lines[row] or lines[row]
     if raw_line and not raw_line:match("^[-+%s]+$") and not raw_line:match("^%s*%(") and row > 1 then
@@ -575,22 +528,17 @@ function M.yank_csv()
       end
 
       if #cells > 0 then
-        local formatted_row = {}
-        for i = 1, #col_names do
-          table.insert(formatted_row, format_csv_field(cells[i] or ""))
-        end
-        table.insert(csv_lines, table.concat(formatted_row, ","))
-        row_count = row_count + 1
+        table.insert(selected_rows, cells)
       end
     end
   end
 
-  if row_count == 0 then
+  if #selected_rows == 0 then
     require("core.utils").notify("db_empty_cell")
     return
   end
 
-  local csv_content = table.concat(csv_lines, "\n")
+  local csv_content = require("plugins.dadbod.export").build_csv(col_names, selected_rows)
   vim.fn.setreg("+", csv_content)
   vim.fn.setreg('"', csv_content)
 

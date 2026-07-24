@@ -187,4 +187,78 @@ function M.copy_block_as_json(get_sql_block, confirm_prod_action)
   end)
 end
 
+local function format_sql_value(value, empty_is_null)
+  if (empty_is_null and value == "") or value:upper() == "NULL" then
+    return "NULL"
+  elseif value:match("^%-?%d+%.?%d*$") or value:lower() == "true" or value:lower() == "false" then
+    return value
+  end
+  return "'" .. value:gsub("'", "''") .. "'"
+end
+
+--- Build an SQL IN condition from raw result values.
+--- @param column_name string
+--- @param values string[]
+--- @return string
+function M.build_in_clause(column_name, values)
+  local formatted_items = {}
+  for _, value in ipairs(values) do
+    formatted_items[#formatted_items + 1] = format_sql_value(value, false)
+  end
+  local prefix = column_name ~= "" and (column_name .. " ") or ""
+  return prefix .. "IN (" .. table.concat(formatted_items, ", ") .. ")"
+end
+
+--- Build SQL INSERT statements from raw result rows.
+--- @param table_name string
+--- @param column_names string[]
+--- @param rows string[][]
+--- @return string
+function M.build_insert(table_name, column_names, rows)
+  local value_tuples = {}
+  for _, row in ipairs(rows) do
+    local formatted_cells = {}
+    for index = 1, #column_names do
+      formatted_cells[index] = format_sql_value(row[index] or "", true)
+    end
+    value_tuples[#value_tuples + 1] = "  (" .. table.concat(formatted_cells, ", ") .. ")"
+  end
+  return string.format(
+    "INSERT INTO %s (%s) VALUES\n%s;",
+    table_name,
+    table.concat(column_names, ", "),
+    table.concat(value_tuples, ",\n")
+  )
+end
+
+local function format_csv_field(value)
+  if not value then return "" end
+  if value:match('[",\n\r]') then
+    return '"' .. value:gsub('"', '""') .. '"'
+  end
+  return value
+end
+
+--- Build CSV from result headers and raw rows.
+--- @param column_names string[]
+--- @param rows string[][]
+--- @return string
+function M.build_csv(column_names, rows)
+  local csv_lines = {}
+  local formatted_headers = {}
+  for _, column in ipairs(column_names) do
+    formatted_headers[#formatted_headers + 1] = format_csv_field(column)
+  end
+  csv_lines[#csv_lines + 1] = table.concat(formatted_headers, ",")
+
+  for _, row in ipairs(rows) do
+    local formatted_row = {}
+    for index = 1, #column_names do
+      formatted_row[index] = format_csv_field(row[index] or "")
+    end
+    csv_lines[#csv_lines + 1] = table.concat(formatted_row, ",")
+  end
+  return table.concat(csv_lines, "\n")
+end
+
 return M
