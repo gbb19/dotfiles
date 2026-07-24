@@ -1,5 +1,6 @@
 local shared = require("plugins.dadbod.shared")
 local history = require("plugins.dadbod.history")
+local state = require("plugins.dadbod.state")
 
 local function fail(message)
   io.stderr:write(message .. "\n")
@@ -7,6 +8,9 @@ local function fail(message)
 end
 
 shared.set_user_closed("/tmp/query.sql", true)
+if shared.user_closed_by_sql ~= state.user_closed_by_sql then
+  fail("Dadbod user-closed compatibility table changed")
+end
 if not shared.is_user_closed("/tmp/query.sql") then
   fail("Dadbod user-closed state was not stored")
 end
@@ -39,6 +43,9 @@ for _, name in ipairs({
 end
 
 history.last_dbout_dir = history_dir
+if state.last_dbout_dir ~= history_dir then
+  fail("Dadbod history compatibility state changed")
+end
 local files = history.get_result_files(nil)
 if #files ~= 3 then
   fail(("Dadbod result history count changed: %d"):format(#files))
