@@ -35,6 +35,7 @@ if lazydev_ok then
 end
 local blink_ok, blink = pcall(require, "blink.cmp")
 local mason = require("plugins.lsp.mason")
+local diagnostics = require("plugins.lsp.diagnostics")
 
 -- Helper to dynamically detect SQL query context for smart completion sorting
 local function detect_sql_context(bufnr, row, col, line)
@@ -374,37 +375,4 @@ vim.api.nvim_create_autocmd("LspAttach", {
   end,
 })
 
--- Diagnostic navigation keymaps (Global)
-vim.keymap.set("n", "[d", function()
-  vim.diagnostic.jump({ count = -1 })
-end, { desc = "Go to Previous Diagnostic" })
-
-vim.keymap.set("n", "]d", function()
-  vim.diagnostic.jump({ count = 1 })
-end, { desc = "Go to Next Diagnostic" })
-
-vim.keymap.set("n", "[e", function()
-  vim.diagnostic.jump({ count = -1, severity = vim.diagnostic.severity.ERROR })
-end, { desc = "Go to Previous Error" })
-
-vim.keymap.set("n", "]e", function()
-  vim.diagnostic.jump({ count = 1, severity = vim.diagnostic.severity.ERROR })
-end, { desc = "Go to Next Error" })
-
--- Copy diagnostic under cursor to system clipboard
-vim.keymap.set("n", "<leader>cy", function()
-  local line_diags = vim.diagnostic.get(0, { lnum = vim.fn.line(".") - 1 })
-  if #line_diags == 0 then
-    utils.notify("diagnostic_missing")
-    return
-  end
-
-  local messages = {}
-  for _, diag in ipairs(line_diags) do
-    table.insert(messages, string.format("[%s] %s", diag.source or "LSP", diag.message))
-  end
-  local full_text = table.concat(messages, "\n")
-
-  vim.fn.setreg("+", full_text)
-  utils.notify("diagnostic_copied", line_diags[1].message)
-end, { desc = "Copy / Yank Diagnostic Message" })
+diagnostics.setup(utils)
