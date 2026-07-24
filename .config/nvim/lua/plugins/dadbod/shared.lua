@@ -6,34 +6,7 @@
 local M = {}
 local state = require("plugins.dadbod.state")
 local sql = require("plugins.dadbod.sql")
-
--- Registry of active metadata-fetching jobs keyed by bufnr.
--- Allows us to kill them on :q! or buffer close so Neovim never hangs.
-local _active_jobs = {} -- bufnr -> table of jobs (SystemObj)
-
-local function kill_jobs_for_buf(bufnr)
-  local jobs = _active_jobs[bufnr]
-  if jobs then
-    for _, job in ipairs(jobs) do
-      pcall(function() job:kill(9) end)
-    end
-    _active_jobs[bufnr] = nil
-  end
-end
-
-vim.api.nvim_create_autocmd("VimLeavePre", {
-  callback = function()
-    for bufnr in pairs(_active_jobs) do
-      kill_jobs_for_buf(bufnr)
-    end
-  end,
-})
-
-vim.api.nvim_create_autocmd("BufDelete", {
-  callback = function(args)
-    kill_jobs_for_buf(args.buf)
-  end,
-})
+local jobs = require("plugins.dadbod.jobs")
 
 -- ---------------------------------------------------------------------------
 -- Adapter Registry
@@ -209,18 +182,7 @@ function M.fetch_columns_async(db_url, table_name, bufnr, on_done)
 
   local job
   job = vim.system(cmd, { text = true }, vim.schedule_wrap(function(result)
-    -- Remove this job from active jobs
-    if _active_jobs[bufnr] then
-      for i, j in ipairs(_active_jobs[bufnr]) do
-        if j == job then
-          table.remove(_active_jobs[bufnr], i)
-          break
-        end
-      end
-      if #_active_jobs[bufnr] == 0 then
-        _active_jobs[bufnr] = nil
-      end
-    end
+    jobs.untrack(bufnr, job)
 
     if result.code ~= 0 or not result.stdout or result.stdout == "" then
       on_done(nil)
@@ -229,10 +191,7 @@ function M.fetch_columns_async(db_url, table_name, bufnr, on_done)
     on_done(parse_fn(result.stdout))
   end))
 
-  if not _active_jobs[bufnr] then
-    _active_jobs[bufnr] = {}
-  end
-  table.insert(_active_jobs[bufnr], job)
+  jobs.track(bufnr, job)
 end
 
 --- Fetch all database tables asynchronously.
@@ -267,18 +226,7 @@ function M.fetch_tables_async(db_url, bufnr, on_done)
 
   local job
   job = vim.system(cmd, { text = true }, vim.schedule_wrap(function(result)
-    -- Remove this job from active jobs
-    if _active_jobs[bufnr] then
-      for i, j in ipairs(_active_jobs[bufnr]) do
-        if j == job then
-          table.remove(_active_jobs[bufnr], i)
-          break
-        end
-      end
-      if #_active_jobs[bufnr] == 0 then
-        _active_jobs[bufnr] = nil
-      end
-    end
+    jobs.untrack(bufnr, job)
 
     if result.code ~= 0 or not result.stdout or result.stdout == "" then
       on_done(nil)
@@ -287,10 +235,7 @@ function M.fetch_tables_async(db_url, bufnr, on_done)
     on_done(parse_fn(result.stdout))
   end))
 
-  if not _active_jobs[bufnr] then
-    _active_jobs[bufnr] = {}
-  end
-  table.insert(_active_jobs[bufnr], job)
+  jobs.track(bufnr, job)
 end
 
 -- ---------------------------------------------------------------------------
