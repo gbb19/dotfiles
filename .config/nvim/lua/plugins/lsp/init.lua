@@ -44,39 +44,6 @@ local diagnostics = require("plugins.lsp.diagnostics")
 local completion = require("plugins.lsp.completion")
 local attach = require("plugins.lsp.attach")
 
--- Helper to dynamically detect SQL query context for smart completion sorting
-local function detect_sql_context(bufnr, row, col, line)
-  return completion.detect_sql_context(bufnr, row, col, line)
-end
-
-local cached_context = nil
-local last_tick = nil
-local last_cursor = nil
-
-local function get_sql_context_cached()
-  local bufnr = vim.api.nvim_get_current_buf()
-  local ft = vim.bo[bufnr].filetype
-  if ft ~= "sql" then
-    return "keyword"
-  end
-
-  local cursor = vim.api.nvim_win_get_cursor(0)
-  local tick = vim.b[bufnr].changedtick
-
-  if last_tick == tick and last_cursor and last_cursor[1] == cursor[1] and last_cursor[2] == cursor[2] then
-    return cached_context
-  end
-
-  last_tick = tick
-  last_cursor = cursor
-
-  local row, col = cursor[1], cursor[2]
-  local line = vim.api.nvim_get_current_line()
-
-  cached_context = detect_sql_context(bufnr, row, col, line)
-  return cached_context
-end
-
 -- 1. Setup Autocomplete engine (blink.cmp)
 if blink_ok then
   blink.setup({
@@ -166,7 +133,7 @@ if blink_ok then
         function(a, b)
           local sql_sources = { sql_columns = true, sql_tables = true, sql_keywords = true }
           if sql_sources[a.source_id] and sql_sources[b.source_id] then
-            local ctx_type = get_sql_context_cached()
+            local ctx_type = completion.get_sql_context_cached()
             local priorities
             if ctx_type == "column" then
               priorities = { sql_columns = 3, sql_keywords = 2, sql_tables = 1 }

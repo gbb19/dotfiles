@@ -1,4 +1,7 @@
 local M = {}
+local cached_context
+local last_tick
+local last_cursor
 
 function M.detect_sql_context(bufnr, row, col, line)
   local line_before = line:sub(1, col)
@@ -16,6 +19,27 @@ function M.detect_sql_context(bufnr, row, col, line)
     end
   end
   return last_keyword or "keyword"
+end
+
+function M.get_sql_context_cached()
+  local bufnr = vim.api.nvim_get_current_buf()
+  if vim.bo[bufnr].filetype ~= "sql" then return "keyword" end
+
+  local cursor = vim.api.nvim_win_get_cursor(0)
+  local tick = vim.b[bufnr].changedtick
+  if last_tick == tick and last_cursor and last_cursor[1] == cursor[1] and last_cursor[2] == cursor[2] then
+    return cached_context
+  end
+
+  last_tick = tick
+  last_cursor = cursor
+  cached_context = M.detect_sql_context(
+    bufnr,
+    cursor[1],
+    cursor[2],
+    vim.api.nvim_get_current_line()
+  )
+  return cached_context
 end
 
 return M
