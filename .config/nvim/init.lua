@@ -5,6 +5,7 @@ _G.startup_start_time = vim.uv.hrtime()
 require("core.options")
 require("core.keymaps")
 require("core.commands")
+require("core.autocmds")
 require("core.ui")
 require("core.layout").setup()
 
@@ -19,13 +20,21 @@ require("plugins.treesitter")
 vim.api.nvim_create_autocmd({ "BufReadPre", "BufNewFile" }, {
   group = vim.api.nvim_create_augroup("LazyFileTooling", { clear = true }),
   callback = function()
-    require("plugins.fidget")
-    require("plugins.conform")
-    require("plugins.gitsigns")
-    require("plugins.bufferline")
-    require("plugins.lsp")
-    require("plugins.treesitter-context")
-    require("plugins.surround")
+    local modules = {
+      "plugins.fidget",
+      "plugins.conform",
+      "plugins.gitsigns",
+      "plugins.bufferline",
+      "plugins.lsp",
+      "plugins.treesitter-context",
+      "plugins.surround",
+    }
+    for _, module in ipairs(modules) do
+      local ok, err = pcall(require, module)
+      if not ok then
+        require("core.utils").notify("config_module_failed", module .. ": " .. tostring(err), { title = "Neovim config" })
+      end
+    end
   end,
   once = true,
 })

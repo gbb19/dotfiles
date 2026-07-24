@@ -148,7 +148,7 @@ if diffview_ok then
     if not item or not item.absolute_path then return end
 
     local repo_root = item.adapter and item.adapter.ctx and item.adapter.ctx.toplevel
-    utils.copy_relative_file_path(item.absolute_path, repo_root)
+    require("core.files").copy_relative_path(item.absolute_path, repo_root)
   end
 
   diffview.setup({

@@ -64,4 +64,6 @@ if ts_ok then
       end
     end,
   })
+else
+  require("core.utils").notify("config_treesitter_failed", tostring(ts), { title = "Neovim config" })
 end

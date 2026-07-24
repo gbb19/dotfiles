@@ -4,34 +4,9 @@
 -- completion-item conversion, and active background job tracking.
 
 local M = {}
-
--- Registry of active metadata-fetching jobs keyed by bufnr.
--- Allows us to kill them on :q! or buffer close so Neovim never hangs.
-local _active_jobs = {} -- bufnr -> table of jobs (SystemObj)
-
-local function kill_jobs_for_buf(bufnr)
-  local jobs = _active_jobs[bufnr]
-  if jobs then
-    for _, job in ipairs(jobs) do
-      pcall(function() job:kill(9) end)
-    end
-    _active_jobs[bufnr] = nil
-  end
-end
-
-vim.api.nvim_create_autocmd("VimLeavePre", {
-  callback = function()
-    for bufnr in pairs(_active_jobs) do
-      kill_jobs_for_buf(bufnr)
-    end
-  end,
-})
-
-vim.api.nvim_create_autocmd("BufDelete", {
-  callback = function(args)
-    kill_jobs_for_buf(args.buf)
-  end,
-})
+local state = require("plugins.dadbod.state")
+local sql = require("plugins.dadbod.sql")
+local jobs = require("plugins.dadbod.jobs")
 
 -- ---------------------------------------------------------------------------
 -- Adapter Registry
@@ -95,18 +70,7 @@ end
 --- @param table_name string
 --- @return string|nil, string
 function M.split_table_name(table_name)
-  if not table_name then return nil, nil end
-
-  local function strip_quotes(str)
-    if not str then return nil end
-    return str:gsub('^"', ''):gsub('"$', '')
-  end
-
-  if table_name:find(".", 1, true) then
-    local parts = vim.split(table_name, ".", { plain = true })
-    return strip_quotes(parts[1]), strip_quotes(parts[2])
-  end
-  return nil, strip_quotes(table_name)
+  return sql.split_table_name(table_name)
 end
 
 --- Scan the buffer and resolve an alias to its full table name.
@@ -123,62 +87,11 @@ function M.resolve_alias_in_buf(bufnr, alias)
   end
 
   local total_lines = vim.api.nvim_buf_line_count(bufnr)
-
-  local function is_empty_or_comment(line)
-    local trimmed = vim.trim(line)
-    return trimmed == "" or vim.startswith(trimmed, "--") or vim.startswith(trimmed, "/*")
-  end
-
-  local function has_valid_semicolon(line)
-    local trimmed = vim.trim(line)
-    return vim.endswith(trimmed, ";")
-  end
-
-  -- Search backwards for block start boundary
-  local start_line = cursor_row
-  while start_line > 1 do
-    local prev_line = vim.api.nvim_buf_get_lines(bufnr, start_line - 2, start_line - 1, false)[1]
-    if not prev_line or is_empty_or_comment(prev_line) or has_valid_semicolon(prev_line) then
-      break
-    end
-    start_line = start_line - 1
-  end
-
-  -- Search forwards for block end boundary
-  local end_line = cursor_row
-  while end_line < total_lines do
-    local curr_line = vim.api.nvim_buf_get_lines(bufnr, end_line - 1, end_line, false)[1]
-    if curr_line and has_valid_semicolon(curr_line) then
-      break
-    end
-    local next_line = vim.api.nvim_buf_get_lines(bufnr, end_line, end_line + 1, false)[1]
-    if not next_line or is_empty_or_comment(next_line) then
-      break
-    end
-    end_line = end_line + 1
-  end
-
-  -- 2. Read only the local SQL block lines
-  local lines = vim.api.nvim_buf_get_lines(bufnr, start_line - 1, end_line, false)
-  local content = table.concat(lines, "\n")
-
-  -- 3. Match alias definitions in the local block
-  -- "schema.table AS alias"  (case-insensitive AS)
-  for tbl, al in content:gmatch("([%w_\"][%w_%.%-\"]*)%s+[Aa][Ss]%s+([%w_]+)") do
-    if al == alias then return tbl end
-  end
-
-  -- "FROM schema.table alias"
-  for tbl, al in content:gmatch("[Ff][Rr][Oo][Mm]%s+([%w_\"][%w_%.%-\"]*)%s+([%w_]+)") do
-    if al == alias then return tbl end
-  end
-
-  -- "JOIN schema.table alias"
-  for tbl, al in content:gmatch("[Jj][Oo][Ii][Nn]%s+([%w_\"][%w_%.%-\"]*)%s+([%w_]+)") do
-    if al == alias then return tbl end
-  end
-
-  return alias -- alias IS the table name
+  local start_line, end_line = sql.find_block(total_lines, cursor_row, function(line)
+    return vim.api.nvim_buf_get_lines(bufnr, line - 1, line, false)[1]
+  end)
+  local block_lines = vim.api.nvim_buf_get_lines(bufnr, start_line - 1, end_line, false)
+  return sql.resolve_alias(block_lines, alias)
 end
 
 -- Helper to warn if an executable is missing (once per session per tool)
@@ -269,18 +182,7 @@ function M.fetch_columns_async(db_url, table_name, bufnr, on_done)
 
   local job
   job = vim.system(cmd, { text = true }, vim.schedule_wrap(function(result)
-    -- Remove this job from active jobs
-    if _active_jobs[bufnr] then
-      for i, j in ipairs(_active_jobs[bufnr]) do
-        if j == job then
-          table.remove(_active_jobs[bufnr], i)
-          break
-        end
-      end
-      if #_active_jobs[bufnr] == 0 then
-        _active_jobs[bufnr] = nil
-      end
-    end
+    jobs.untrack(bufnr, job)
 
     if result.code ~= 0 or not result.stdout or result.stdout == "" then
       on_done(nil)
@@ -289,10 +191,7 @@ function M.fetch_columns_async(db_url, table_name, bufnr, on_done)
     on_done(parse_fn(result.stdout))
   end))
 
-  if not _active_jobs[bufnr] then
-    _active_jobs[bufnr] = {}
-  end
-  table.insert(_active_jobs[bufnr], job)
+  jobs.track(bufnr, job)
 end
 
 --- Fetch all database tables asynchronously.
@@ -327,18 +226,7 @@ function M.fetch_tables_async(db_url, bufnr, on_done)
 
   local job
   job = vim.system(cmd, { text = true }, vim.schedule_wrap(function(result)
-    -- Remove this job from active jobs
-    if _active_jobs[bufnr] then
-      for i, j in ipairs(_active_jobs[bufnr]) do
-        if j == job then
-          table.remove(_active_jobs[bufnr], i)
-          break
-        end
-      end
-      if #_active_jobs[bufnr] == 0 then
-        _active_jobs[bufnr] = nil
-      end
-    end
+    jobs.untrack(bufnr, job)
 
     if result.code ~= 0 or not result.stdout or result.stdout == "" then
       on_done(nil)
@@ -347,10 +235,7 @@ function M.fetch_tables_async(db_url, bufnr, on_done)
     on_done(parse_fn(result.stdout))
   end))
 
-  if not _active_jobs[bufnr] then
-    _active_jobs[bufnr] = {}
-  end
-  table.insert(_active_jobs[bufnr], job)
+  jobs.track(bufnr, job)
 end
 
 -- ---------------------------------------------------------------------------
@@ -427,26 +312,7 @@ end
 --- @param target_buf integer
 --- @return boolean ok
 function M.set_win_buf_safely(win, target_buf)
-  if not win or win == 0 then
-    win = vim.api.nvim_get_current_win()
-  end
-  if not vim.api.nvim_win_is_valid(win) then return false end
-
-  local was_fixed = vim.wo[win].winfixbuf
-  if was_fixed then
-    vim.wo[win].winfixbuf = false
-  end
-
-  local ok = pcall(vim.api.nvim_win_set_buf, win, target_buf)
-
-  if vim.api.nvim_win_is_valid(win) then
-    local ft = vim.bo[target_buf].filetype
-    if ft == "dbout" or ft == "explain" or was_fixed then
-      vim.wo[win].winfixbuf = true
-    end
-  end
-
-  return ok
+  return require("plugins.dadbod.results").set_win_buf_safely(win, target_buf)
 end
 
 --- Get the stable, absolute query result subdirectory path for a given SQL file.
@@ -454,107 +320,23 @@ end
 --- @param bufnr integer|nil
 --- @return string|nil
 function M.get_subdir_for_sql(sql_path, bufnr)
-  if not sql_path or sql_path == "" then return nil end
-
-  local sql_key
-  local db_file = vim.fs.find(".db", {
-    upward = true,
-    path = vim.fs.dirname(sql_path),
-  })[1]
-  if db_file then
-    local db_dir = vim.fn.fnamemodify(db_file, ":h")
-    if vim.startswith(sql_path, db_dir .. "/") then
-      local rel = sql_path:sub(#db_dir + 2)
-      sql_key = rel:gsub("%.sql$", ""):gsub("[/\\]", "_")
-    end
-  end
-  sql_key = sql_key or vim.fn.fnamemodify(sql_path, ":t:r")
-
-  local target_buf = bufnr or vim.fn.bufnr(sql_path)
-  local db_service = ""
-  if target_buf and target_buf > 0 and vim.api.nvim_buf_is_valid(target_buf) then
-    db_service = vim.b[target_buf].db_service or ""
-  elseif target_buf == 0 then
-    db_service = vim.b.db_service or ""
-  end
-
-  local safe_service = db_service ~= "" and db_service:gsub("[^%w%-_]", "_") or nil
-  local safe_sql_key = sql_key:gsub("[^%w%-_]", "_")
-
-  local base_dir = "/tmp/dadbodout_" .. vim.fn.getpid()
-  local subdir = safe_service
-    and (base_dir .. "/" .. safe_service .. "/" .. safe_sql_key)
-    or  (base_dir .. "/" .. safe_sql_key)
-  return subdir
+  return require("plugins.dadbod.results").get_subdir_for_sql(sql_path, bufnr)
 end
 
-M.user_closed_by_sql = {}
-M.is_deleting_result = false
+M.user_closed_by_sql = state.user_closed_by_sql
 
 function M.is_user_closed(sql_path)
-  if not sql_path or sql_path == "" then return false end
-  return M.user_closed_by_sql[sql_path] == true
+  return require("plugins.dadbod.results").is_user_closed(sql_path)
 end
 
 function M.set_user_closed(sql_path, closed)
-  if not sql_path or sql_path == "" then return end
-  if closed then
-    M.user_closed_by_sql[sql_path] = true
-  else
-    M.user_closed_by_sql[sql_path] = nil
-  end
+  return require("plugins.dadbod.results").set_user_closed(sql_path, closed)
 end
 
 --- Open `result_path` in a dbout window, reusing an existing one when possible.
 --- Preserves original active window focus so the user's cursor remains in their SQL editor.
 function M.show_result_in_window(result_path, subdir, sql_source_path)
-  local target_buf = vim.fn.bufnr(result_path)
-  local sql_src = sql_source_path
-  if not sql_src and target_buf ~= -1 then
-    sql_src = vim.b[target_buf].sql_source_path
-  end
-  if sql_src and sql_src ~= "" then
-    M.set_user_closed(sql_src, false)
-  end
-
-  local orig_win = vim.api.nvim_get_current_win()
-  require("plugins.dadbod.history").last_dbout_dir = subdir
-
-  if target_buf == -1 then
-    target_buf = vim.fn.bufadd(result_path)
-    vim.fn.bufload(target_buf)
-  end
-
-  if sql_src and sql_src ~= "" then
-    vim.b[target_buf].sql_source_path = sql_src
-  end
-
-  local wins = vim.fn.win_findbuf(target_buf)
-  if #wins > 0 then
-    if vim.api.nvim_win_is_valid(orig_win) then
-      vim.api.nvim_set_current_win(orig_win)
-    end
-    return
-  end
-
-  for _, win in ipairs(vim.api.nvim_list_wins()) do
-    local ft = vim.bo[vim.api.nvim_win_get_buf(win)].filetype
-    if ft == "dbout" or ft == "explain" then
-      M.set_win_buf_safely(win, target_buf)
-      if vim.api.nvim_win_is_valid(orig_win) then
-        vim.api.nvim_set_current_win(orig_win)
-      end
-      return
-    end
-  end
-
-  vim.cmd("vertical split")
-  local new_win = vim.api.nvim_get_current_win()
-  M.set_win_buf_safely(new_win, target_buf)
-
-  if vim.api.nvim_win_is_valid(orig_win) then
-    vim.api.nvim_set_current_win(orig_win)
-  end
+  return require("plugins.dadbod.results").show_result_in_window(result_path, subdir, sql_source_path)
 end
 
 
@@ -581,21 +363,20 @@ end
 
 --- Try to find the matching SQL source path for a given dbout buffer path by matching their result directories
 function M.find_sql_path_for_dbout(dbout_path)
-  if not dbout_path or dbout_path == "" then return nil end
-  local dbout_dir = vim.fn.fnamemodify(dbout_path, ":h")
-
-  for _, bufnr in ipairs(vim.api.nvim_list_bufs()) do
-    if vim.api.nvim_buf_is_valid(bufnr) and vim.bo[bufnr].filetype == "sql" then
-      local sql_path = vim.api.nvim_buf_get_name(bufnr)
-      if sql_path and sql_path ~= "" then
-        local subdir = M.get_subdir_for_sql(sql_path, bufnr)
-        if subdir == dbout_dir then
-          return sql_path
-        end
-      end
-    end
-  end
-  return nil
+  return require("plugins.dadbod.results").find_sql_path_for_dbout(dbout_path)
 end
 
-return M
+return setmetatable(M, {
+  __index = function(_, key)
+    if key == "is_deleting_result" then
+      return state.is_deleting_result
+    end
+  end,
+  __newindex = function(_, key, value)
+    if key == "is_deleting_result" then
+      state.is_deleting_result = value
+    else
+      rawset(M, key, value)
+    end
+  end,
+})
