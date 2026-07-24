@@ -161,27 +161,6 @@ function M.notify(key, custom_err, opts)
   vim.notify(text, level)
 end
 
---- Copy a file path relative to a base directory.
----@param path? string Absolute file path; defaults to the current buffer.
----@param base? string Base directory; defaults to the current working directory.
----@return string|nil relative_path
-function M.copy_relative_file_path(path, base)
-  path = path or vim.api.nvim_buf_get_name(0)
-  if path == "" then
-    M.notify("buffer_no_name")
-    return nil
-  end
-
-  path = vim.fs.abspath(path)
-  base = vim.fs.abspath(base or vim.uv.cwd())
-  local relative_path = vim.fs.relpath(base, path) or path
-
-  vim.fn.setreg("+", relative_path)
-  vim.fn.setreg('"', relative_path)
-  M.notify("file_path_copied", relative_path)
-  return relative_path
-end
-
 --- Run a command or function with a visual loading notification and timeout safeguard
 ---@param opts table {title: string, message: string, run: string|function, event: string|nil, pattern: string|nil, timeout: number|nil}
 function M.with_loading(opts)
