@@ -6,7 +6,8 @@ M.state = {}
 ---@param source string
 ---@param picker snacks.Picker
 function M.capture(source, picker)
-  local items = (picker.finder and picker.finder.items) or (picker.list and picker.list.items)
+  local is_live = picker.opts and picker.opts.live
+  local items = not is_live and ((picker.finder and picker.finder.items) or (picker.list and picker.list.items)) or nil
   M.state[source] = {
     opts = picker.init_opts or {},
     selected = picker:selected({ fallback = false }),
@@ -51,7 +52,7 @@ function M.resume(source)
 
   state.opts.pattern = state.filter.pattern
   state.opts.search = state.filter.search
-  if state.items then
+  if state.items and not state.opts.live then
     state.opts.finder = function()
       return state.items
     end
