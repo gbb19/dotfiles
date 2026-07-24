@@ -28,6 +28,7 @@ M.messages = {
   diffview_open_history   = { "File history against", levels.INFO },
   diffview_reviewed       = { "Marked as reviewed", levels.INFO },
   diffview_unreviewed     = { "Removed reviewed mark", levels.INFO },
+  file_path_copied        = { "Copied relative file path", levels.INFO },
   git_uncommitted         = { "Line has uncommitted changes", levels.WARN },
   git_not_repo            = { "Not in a git repository", levels.ERROR },
   git_blame_failed        = { "Failed to run git blame for this line", levels.ERROR },
@@ -152,6 +153,27 @@ function M.notify(key, custom_err, opts)
     text = text .. ": " .. tostring(custom_err)
   end
   vim.notify(text, level)
+end
+
+--- Copy a file path relative to a base directory.
+---@param path? string Absolute file path; defaults to the current buffer.
+---@param base? string Base directory; defaults to the current working directory.
+---@return string|nil relative_path
+function M.copy_relative_file_path(path, base)
+  path = path or vim.api.nvim_buf_get_name(0)
+  if path == "" then
+    M.notify("buffer_no_name")
+    return nil
+  end
+
+  path = vim.fs.abspath(path)
+  base = vim.fs.abspath(base or vim.uv.cwd())
+  local relative_path = vim.fs.relpath(base, path) or path
+
+  vim.fn.setreg("+", relative_path)
+  vim.fn.setreg('"', relative_path)
+  M.notify("file_path_copied", relative_path)
+  return relative_path
 end
 
 --- Run a command or function with a visual loading notification and timeout safeguard

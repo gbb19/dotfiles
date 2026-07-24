@@ -117,6 +117,40 @@ if diffview_ok then
     end
   end
 
+  local function show_file_name()
+    local lib_ok, lib = pcall(require, "diffview.lib")
+    if not lib_ok then return end
+
+    local view = lib.get_current_view()
+    if not view or not view.panel or not view.panel:is_focused() then return end
+
+    local item = view.panel:get_item_at_cursor()
+    local name = item and (item.basename or (item.path and vim.fs.basename(item.path)))
+    if not name or name == "" then return end
+
+    vim.lsp.util.open_floating_preview({ name }, "text", {
+      border = "rounded",
+      close_events = { "CursorMoved", "CursorMovedI", "BufHidden", "InsertCharPre" },
+      focusable = false,
+      title = " File Name ",
+      wrap = true,
+    })
+  end
+
+  local function copy_file_path()
+    local lib_ok, lib = pcall(require, "diffview.lib")
+    if not lib_ok then return end
+
+    local view = lib.get_current_view()
+    if not view or not view.panel or not view.panel:is_focused() then return end
+
+    local item = view.panel:get_item_at_cursor()
+    if not item or not item.absolute_path then return end
+
+    local repo_root = item.adapter and item.adapter.ctx and item.adapter.ctx.toplevel
+    utils.copy_relative_file_path(item.absolute_path, repo_root)
+  end
+
   diffview.setup({
     enhanced_diff_hl = true,
 
@@ -132,6 +166,8 @@ if diffview_ok then
     keymaps = {
       -- File panel (left side): navigate with j/k, enter with l/<CR>, jump with gf
       file_panel = {
+        { "n", "K", show_file_name, { desc = "Show full file name" } },
+        { "n", "<leader>yp", copy_file_path, { desc = "Copy relative file path" } },
         { "n", "gf", function()
           local ok, err = pcall(function()
             actions.select_entry()   -- enter the file (same as l/<CR>): shows diff + updates state

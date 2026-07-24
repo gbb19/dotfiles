@@ -33,6 +33,9 @@ pcall(vim.keymap.del, "i", "<C-s>")
 
 -- Generic buffer/file renaming keymap
 vim.keymap.set("n", "<leader>br", function() require("core.utils").rename_current_buffer() end, { desc = "Rename Buffer/File" })
+vim.keymap.set("n", "<leader>yp", function()
+  require("core.utils").copy_relative_file_path()
+end, { desc = "Copy Relative File Path" })
 
 -- Plugin-specific keymaps (split by domain)
 require("core.keymaps.overseer")
