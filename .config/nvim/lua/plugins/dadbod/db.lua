@@ -4,37 +4,17 @@
 local M = {}
 
 local shared = require("plugins.dadbod.shared")
+local jobs = require("plugins.dadbod.jobs")
 
--- Registry of active connection-test jobs keyed by bufnr.
--- Allows us to kill them on :q! so Neovim never hangs waiting for psql.
-local _active_jobs = {}
 -- Track last failed notification timestamp per profile name to prevent notification spam on session restore
 local _last_failed_notify = {}
 
--- Kill all tracked jobs (called from VimLeavePre and BufDelete)
-local function kill_job(bufnr)
-  local job = _active_jobs[bufnr]
-  if job then
-    pcall(function() job:kill(9) end)
-    _active_jobs[bufnr] = nil
-  end
-end
-
 vim.api.nvim_create_autocmd("VimLeavePre", {
   callback = function()
-    for bufnr in pairs(_active_jobs) do
-      kill_job(bufnr)
-    end
     -- Stop postgres-language-server daemon if installed to prevent orphaned background processes
     if vim.fn.executable("postgres-language-server") == 1 then
       pcall(vim.fn.system, { "postgres-language-server", "stop" })
     end
-  end,
-})
-
-vim.api.nvim_create_autocmd("BufDelete", {
-  callback = function(args)
-    kill_job(args.buf)
   end,
 })
 
@@ -164,10 +144,7 @@ function M.test_connection_async(db_url, bufnr, profile_name, opts)
   end
 
   -- Kill any existing connection test for this buffer before starting a new one
-  if _active_jobs[bufnr] then
-    pcall(function() _active_jobs[bufnr]:kill(9) end)
-    _active_jobs[bufnr] = nil
-  end
+  jobs.kill_for_buf(bufnr, "connection")
 
   local cmd
   local env = nil
@@ -208,8 +185,9 @@ function M.test_connection_async(db_url, bufnr, profile_name, opts)
     return
   end
 
-  local job = vim.system(cmd, { text = true, env = env }, vim.schedule_wrap(function(result)
-    _active_jobs[bufnr] = nil
+  local job
+  job = vim.system(cmd, { text = true, env = env }, vim.schedule_wrap(function(result)
+    jobs.untrack(bufnr, job, "connection")
     if not vim.api.nvim_buf_is_valid(bufnr) then return end
 
     if result.code == 0 then
@@ -266,8 +244,7 @@ function M.test_connection_async(db_url, bufnr, profile_name, opts)
     pcall(function() require("lualine").refresh() end)
   end))
 
-  -- Track the job so it can be killed on :q! or BufDelete
-  _active_jobs[bufnr] = job
+  jobs.track(bufnr, job, "connection")
 end
 
 return M

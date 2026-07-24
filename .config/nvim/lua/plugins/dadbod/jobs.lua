@@ -2,22 +2,28 @@
 
 local M = {}
 
----@type table<integer, table[]>
+---@type table<integer, table<string, table[]>>
 local active = {}
 
 --- Track a background job for a buffer.
 --- @param bufnr integer
 --- @param job table
-function M.track(bufnr, job)
+--- @param scope? string
+function M.track(bufnr, job, scope)
+  scope = scope or "default"
   active[bufnr] = active[bufnr] or {}
-  table.insert(active[bufnr], job)
+  active[bufnr][scope] = active[bufnr][scope] or {}
+  table.insert(active[bufnr][scope], job)
 end
 
 --- Stop tracking a completed background job.
 --- @param bufnr integer
 --- @param job table
-function M.untrack(bufnr, job)
-  local buffer_jobs = active[bufnr]
+--- @param scope? string
+function M.untrack(bufnr, job, scope)
+  scope = scope or "default"
+  local buffer_scopes = active[bufnr]
+  local buffer_jobs = buffer_scopes and buffer_scopes[scope]
   if not buffer_jobs then return end
   for index, tracked in ipairs(buffer_jobs) do
     if tracked == job then
@@ -25,18 +31,33 @@ function M.untrack(bufnr, job)
       break
     end
   end
-  if #buffer_jobs == 0 then active[bufnr] = nil end
+  if #buffer_jobs == 0 then buffer_scopes[scope] = nil end
+  if not next(buffer_scopes) then active[bufnr] = nil end
 end
 
 --- Kill all background jobs tracked for a buffer.
 --- @param bufnr integer
-function M.kill_for_buf(bufnr)
-  local buffer_jobs = active[bufnr]
-  if not buffer_jobs then return end
-  for _, job in ipairs(buffer_jobs) do
-    pcall(function() job:kill(9) end)
+--- @param scope? string
+function M.kill_for_buf(bufnr, scope)
+  local buffer_scopes = active[bufnr]
+  if not buffer_scopes then return end
+
+  local function kill_scope(scope_name)
+    for _, job in ipairs(buffer_scopes[scope_name] or {}) do
+      pcall(function() job:kill(9) end)
+    end
+    buffer_scopes[scope_name] = nil
   end
-  active[bufnr] = nil
+
+  if scope then
+    kill_scope(scope)
+    if not next(buffer_scopes) then active[bufnr] = nil end
+  else
+    for scope_name in pairs(buffer_scopes) do
+      kill_scope(scope_name)
+    end
+    active[bufnr] = nil
+  end
 end
 
 function M.kill_all()
