@@ -78,6 +78,26 @@ local resume = require("snacks.picker.resume")
 check(type(resume.add) == "function", "Snacks resume.add is unavailable")
 check(type(resume._resume) == "function", "configured Snacks resume implementation is unavailable")
 
+local previous_files_state = resume.state.files
+local cached_items = {
+  { file = "one.lua" },
+  { file = "two.lua" },
+}
+resume.add({
+  opts = { source = "files", toggles = {}, live = false },
+  init_opts = { source = "files" },
+  selected = function()
+    return {}
+  end,
+  list = { cursor = 2, top = 1, items = cached_items },
+  input = { filter = { pattern = "", search = "" } },
+  finder = { items = cached_items },
+})
+check(resume.state.files ~= nil, "file picker resume state is not recorded")
+check(resume.state.files.cursor == 2, "file picker resume cursor is not recorded")
+check(resume.state.files.items == cached_items, "file picker items are not cached for instant resume")
+resume.state.files = previous_files_state
+
 local git_branches = require("core.git.branches")
 local local_branches = git_branches.parse_local({
   "* main    abc1234 [origin/main: ahead 2, behind 1] current",

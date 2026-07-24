@@ -289,7 +289,7 @@ Acceptance criteria:
 ## Tests: Characterization Baseline and Final Verification
 
 - [x] Capture current keymaps, commands, and autocmd registrations before the first refactor.
-- [ ] Capture current Snacks picker and resume behavior before removing private patches.
+- [x] Capture current Snacks picker and resume behavior before removing private patches.
 - [ ] Capture current Dadbod module behavior before changing state ownership.
 - [ ] Capture current LSP, completion, and Mason behavior before splitting modules.
 - [x] Add headless tests for pure Git parsing.
