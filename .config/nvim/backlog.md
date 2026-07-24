@@ -293,9 +293,9 @@ Acceptance criteria:
 - [x] Capture current keymaps, commands, and autocmd registrations before the first refactor.
 - [x] Capture current Snacks picker and resume behavior before removing private patches.
 - [x] Capture current Dadbod module behavior before changing state ownership.
-- [ ] Capture current LSP, completion, and Mason behavior before splitting modules.
+- [x] Capture current LSP, completion, and Mason behavior before splitting modules.
 - [x] Add headless tests for pure Git parsing.
-- [ ] Add headless tests for SQL parsing and result-path generation.
+- [x] Add headless tests for SQL parsing and result-path generation.
 - [ ] Add smoke tests for keymap registration and plugin entry points.
 - [ ] Document external dependencies: Git, ripgrep, fd, database CLIs, tmux, and OSC 52 terminal support.
 - [ ] Run `:checkhealth` after the final refactor.
