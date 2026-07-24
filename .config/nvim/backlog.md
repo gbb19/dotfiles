@@ -148,13 +148,13 @@ Acceptance criteria:
 
 ## Refactor: Extract Pure SQL Logic
 
-- [ ] Add `lua/plugins/dadbod/sql.lua`.
-- [ ] Move SQL block detection into the module.
-- [ ] Move comment and semicolon handling into the module.
-- [ ] Move alias and identifier parsing where appropriate.
-- [ ] Remove duplicated `is_empty_or_comment()` implementations.
-- [ ] Remove duplicated `has_valid_semicolon()` implementations.
-- [ ] Add headless tests for block boundaries, comments, aliases, and quoted identifiers.
+- [x] Add `lua/plugins/dadbod/sql.lua`.
+- [x] Move SQL block detection into the module.
+- [x] Move comment and semicolon handling into the module.
+- [x] Move alias and identifier parsing where appropriate.
+- [x] Remove duplicated `is_empty_or_comment()` implementations.
+- [x] Remove duplicated `has_valid_semicolon()` implementations.
+- [x] Add headless tests for block boundaries, comments, aliases, and quoted identifiers.
 
 Acceptance criteria:
 

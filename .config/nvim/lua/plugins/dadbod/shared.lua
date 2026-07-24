@@ -5,6 +5,7 @@
 
 local M = {}
 local state = require("plugins.dadbod.state")
+local sql = require("plugins.dadbod.sql")
 
 -- Registry of active metadata-fetching jobs keyed by bufnr.
 -- Allows us to kill them on :q! or buffer close so Neovim never hangs.
@@ -96,18 +97,7 @@ end
 --- @param table_name string
 --- @return string|nil, string
 function M.split_table_name(table_name)
-  if not table_name then return nil, nil end
-
-  local function strip_quotes(str)
-    if not str then return nil end
-    return str:gsub('^"', ''):gsub('"$', '')
-  end
-
-  if table_name:find(".", 1, true) then
-    local parts = vim.split(table_name, ".", { plain = true })
-    return strip_quotes(parts[1]), strip_quotes(parts[2])
-  end
-  return nil, strip_quotes(table_name)
+  return sql.split_table_name(table_name)
 end
 
 --- Scan the buffer and resolve an alias to its full table name.
@@ -124,62 +114,11 @@ function M.resolve_alias_in_buf(bufnr, alias)
   end
 
   local total_lines = vim.api.nvim_buf_line_count(bufnr)
-
-  local function is_empty_or_comment(line)
-    local trimmed = vim.trim(line)
-    return trimmed == "" or vim.startswith(trimmed, "--") or vim.startswith(trimmed, "/*")
-  end
-
-  local function has_valid_semicolon(line)
-    local trimmed = vim.trim(line)
-    return vim.endswith(trimmed, ";")
-  end
-
-  -- Search backwards for block start boundary
-  local start_line = cursor_row
-  while start_line > 1 do
-    local prev_line = vim.api.nvim_buf_get_lines(bufnr, start_line - 2, start_line - 1, false)[1]
-    if not prev_line or is_empty_or_comment(prev_line) or has_valid_semicolon(prev_line) then
-      break
-    end
-    start_line = start_line - 1
-  end
-
-  -- Search forwards for block end boundary
-  local end_line = cursor_row
-  while end_line < total_lines do
-    local curr_line = vim.api.nvim_buf_get_lines(bufnr, end_line - 1, end_line, false)[1]
-    if curr_line and has_valid_semicolon(curr_line) then
-      break
-    end
-    local next_line = vim.api.nvim_buf_get_lines(bufnr, end_line, end_line + 1, false)[1]
-    if not next_line or is_empty_or_comment(next_line) then
-      break
-    end
-    end_line = end_line + 1
-  end
-
-  -- 2. Read only the local SQL block lines
-  local lines = vim.api.nvim_buf_get_lines(bufnr, start_line - 1, end_line, false)
-  local content = table.concat(lines, "\n")
-
-  -- 3. Match alias definitions in the local block
-  -- "schema.table AS alias"  (case-insensitive AS)
-  for tbl, al in content:gmatch("([%w_\"][%w_%.%-\"]*)%s+[Aa][Ss]%s+([%w_]+)") do
-    if al == alias then return tbl end
-  end
-
-  -- "FROM schema.table alias"
-  for tbl, al in content:gmatch("[Ff][Rr][Oo][Mm]%s+([%w_\"][%w_%.%-\"]*)%s+([%w_]+)") do
-    if al == alias then return tbl end
-  end
-
-  -- "JOIN schema.table alias"
-  for tbl, al in content:gmatch("[Jj][Oo][Ii][Nn]%s+([%w_\"][%w_%.%-\"]*)%s+([%w_]+)") do
-    if al == alias then return tbl end
-  end
-
-  return alias -- alias IS the table name
+  local start_line, end_line = sql.find_block(total_lines, cursor_row, function(line)
+    return vim.api.nvim_buf_get_lines(bufnr, line - 1, line, false)[1]
+  end)
+  local block_lines = vim.api.nvim_buf_get_lines(bufnr, start_line - 1, end_line, false)
+  return sql.resolve_alias(block_lines, alias)
 end
 
 -- Helper to warn if an executable is missing (once per session per tool)

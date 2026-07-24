@@ -2,6 +2,7 @@
 -- SQL block parsing, execution, safety guardrails, and data exporting.
 
 local M = {}
+local sql = require("plugins.dadbod.sql")
 
 --- Flash highlight lines temporarily in buffer to indicate execution
 local function flash_highlight(bufnr, start_line, end_line)
@@ -49,41 +50,9 @@ function M.get_sql_block()
   local bufnr = vim.api.nvim_get_current_buf()
   local cursor_row = vim.api.nvim_win_get_cursor(0)[1]
   local total_lines = vim.api.nvim_buf_line_count(bufnr)
-
-  local function is_empty_or_comment(line)
-    local trimmed = vim.trim(line)
-    return trimmed == "" or vim.startswith(trimmed, "--") or vim.startswith(trimmed, "/*")
-  end
-
-  local function has_valid_semicolon(line)
-    local trimmed = vim.trim(line)
-    return vim.endswith(trimmed, ";")
-  end
-
-  -- Search backwards for block start boundary
-  local start_line = cursor_row
-  while start_line > 1 do
-    local prev_line = vim.api.nvim_buf_get_lines(bufnr, start_line - 2, start_line - 1, false)[1]
-    if is_empty_or_comment(prev_line) or has_valid_semicolon(prev_line) then
-      break
-    end
-    start_line = start_line - 1
-  end
-
-  -- Search forwards for block end boundary
-  local end_line = cursor_row
-  while end_line < total_lines do
-    local curr_line = vim.api.nvim_buf_get_lines(bufnr, end_line - 1, end_line, false)[1]
-    if has_valid_semicolon(curr_line) then
-      break
-    end
-    local next_line = vim.api.nvim_buf_get_lines(bufnr, end_line, end_line + 1, false)[1]
-    if is_empty_or_comment(next_line) then
-      break
-    end
-    end_line = end_line + 1
-  end
-
+  local start_line, end_line = sql.find_block(total_lines, cursor_row, function(line)
+    return vim.api.nvim_buf_get_lines(bufnr, line - 1, line, false)[1]
+  end)
   local lines = vim.api.nvim_buf_get_lines(bufnr, start_line - 1, end_line, false)
   return start_line, end_line, lines
 end
