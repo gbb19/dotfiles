@@ -73,10 +73,10 @@ Acceptance criteria:
 
 ## Refactor: Shared Git Foundation
 
-- [ ] Add `lua/core/git/repo.lua` for repository root and current-branch resolution.
-- [ ] Add `lua/core/git/branches.lua` for local/remote branch parsing and status metadata.
-- [ ] Replace duplicate Git root and branch logic in Snacks and Diffview.
-- [ ] Keep UI code out of the Git data modules.
+- [x] Add `lua/core/git/repo.lua` for repository root and current-branch resolution.
+- [x] Add `lua/core/git/branches.lua` for local/remote branch parsing and status metadata.
+- [x] Replace duplicate Git root and branch logic in Snacks and Diffview.
+- [x] Keep UI code out of the Git data modules.
 
 Acceptance criteria:
 
@@ -292,7 +292,7 @@ Acceptance criteria:
 - [ ] Capture current Snacks picker and resume behavior before removing private patches.
 - [ ] Capture current Dadbod module behavior before changing state ownership.
 - [ ] Capture current LSP, completion, and Mason behavior before splitting modules.
-- [ ] Add headless tests for pure Git parsing.
+- [x] Add headless tests for pure Git parsing.
 - [ ] Add headless tests for SQL parsing and result-path generation.
 - [ ] Add smoke tests for keymap registration and plugin entry points.
 - [ ] Document external dependencies: Git, ripgrep, fd, database CLIs, tmux, and OSC 52 terminal support.

@@ -78,6 +78,29 @@ local resume = require("snacks.picker.resume")
 check(type(resume.add) == "function", "Snacks resume.add is unavailable")
 check(type(resume._resume) == "function", "configured Snacks resume implementation is unavailable")
 
+local git_branches = require("core.git.branches")
+local local_branches = git_branches.parse_local({
+  "* main    abc1234 [origin/main: ahead 2, behind 1] current",
+  "  feature def5678 [origin/feature: gone] old",
+  "  remotes/origin/HEAD -> origin/main",
+}, "/repo")
+check(#local_branches == 2, "local Git branch parsing changed")
+check(local_branches[1].branch == "main", "current Git branch name parsing changed")
+check(local_branches[1].current == true, "current Git branch marker parsing changed")
+check(local_branches[1].ahead == 2, "Git ahead count parsing changed")
+check(local_branches[1].behind == 1, "Git behind count parsing changed")
+check(local_branches[1].cwd == "/repo", "Git branch root propagation changed")
+check(local_branches[2].gone == true, "gone Git branch parsing changed")
+
+local remote_branches = git_branches.parse_remote({
+  "  origin/HEAD -> origin/main",
+  "  origin/main",
+  "  origin/feature",
+}, "/repo")
+check(#remote_branches == 2, "remote Git branch parsing changed")
+check(remote_branches[1].branch == "origin/main", "remote Git branch order changed")
+check(remote_branches[1].is_remote == true, "remote Git branch marker changed")
+
 if #failures > 0 then
   io.stderr:write(("characterization failed (%d/%d):\n- %s\n"):format(
     #failures,
