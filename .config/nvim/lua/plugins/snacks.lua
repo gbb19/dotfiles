@@ -124,74 +124,9 @@ require("plugins.snacks.files").setup({
   picker_resume = picker_resume,
 })
 
-local _branch_preview_timer = nil
-
-local function open_git_branches_picker(opts)
-  ensure_unfixed_window()
-  opts = opts or {}
-  local git_branches = require("core.git.branches")
-  Snacks.picker(vim.tbl_deep_extend("force", {
-    source = "git_branches",
-    title = "Git Branches",
-    finder = function(picker_opts, ctx)
-      local root = ctx:git_root()
-      return ctx.filter:filter(git_branches.list(root))
-    end,
-    format = function(item, picker)
-      local a = Snacks.picker.util.align
-      local ret = {}
-      if item.current then
-        table.insert(ret, { a("* ", 2), "SnacksPickerGitBranchCurrent" })
-      else
-        table.insert(ret, { a("  ", 2) })
-      end
-      table.insert(ret, { item.branch, "SnacksPickerGitBranch" })
-
-      if not item.is_remote then
-        local status_parts = {}
-        if item.ahead then
-          table.insert(status_parts, { "↑" .. item.ahead, "SnacksPickerGitAhead" })
-        end
-        if item.behind then
-          if #status_parts > 0 then
-            table.insert(status_parts, { " " })
-          end
-          table.insert(status_parts, { "↓" .. item.behind, "SnacksPickerGitBehind" })
-        end
-        if item.gone then
-          table.insert(status_parts, { "[gone]", "SnacksPickerGitGone" })
-        end
-
-        if #status_parts > 0 then
-          table.insert(ret, { " " })
-          vim.list_extend(ret, status_parts)
-        end
-      end
-
-      return ret
-    end,
-    preview = function(ctx)
-      if not ctx.item or not ctx.item.branch then
-        return
-      end
-      ctx.preview:set_title("Branch: " .. ctx.item.branch)
-      if _branch_preview_timer then
-        pcall(vim.uv.timer_stop, _branch_preview_timer)
-        _branch_preview_timer = nil
-      end
-      _branch_preview_timer = vim.defer_fn(function()
-        if ctx.picker and not ctx.picker.closed and ctx.buf and vim.api.nvim_buf_is_valid(ctx.buf) then
-          local cmd = { "git", "-c", "core.quotepath=false", "--no-pager", "log", "-n", "15", "--stat", ctx.item.branch }
-          pcall(require("snacks.picker.preview").cmd, cmd, ctx, { ft = "git" })
-        end
-      end, 80)
-    end,
-  }, opts))
-end
-
-vim.keymap.set("n", "<leader>gc", function()
-  open_git_branches_picker()
-end, { desc = "Git Checkout Branch (Local First + MRU)" })
+require("plugins.snacks.git").setup({
+  ensure_unfixed_window = ensure_unfixed_window,
+})
 
 require("plugins.snacks.grep").setup({
   ensure_unfixed_window = ensure_unfixed_window,
