@@ -119,27 +119,11 @@ local function ensure_unfixed_window()
   return vim.api.nvim_get_current_win()
 end
 
--- Global search keymaps using Snacks picker
-vim.keymap.set("n", "<leader>ff", function()
-  ensure_unfixed_window()
-  if vim.v.count == 0 and picker_resume.has("files") then
-    picker_resume.resume("files")
-  else
-    local cwd = vim.fn.fnamemodify(vim.fn.getcwd(), ":p:~"):gsub("/+$", "")
-    picker_resume.open("files", Snacks.picker.files, { title = "Files (" .. cwd .. ")" })
-  end
-end, { desc = "Find Files (Resume; [count]=new search)" })
+require("plugins.snacks.files").setup({
+  ensure_unfixed_window = ensure_unfixed_window,
+  picker_resume = picker_resume,
+})
 
-vim.keymap.set("n", "<leader>fF", function()
-  ensure_unfixed_window()
-  local cwd = vim.fn.fnamemodify(vim.fn.getcwd(), ":p:~"):gsub("/+$", "")
-  picker_resume.open("files", Snacks.picker.files, { title = "Files (" .. cwd .. ")" })
-end, { desc = "Find Files (Fresh Search)" })
-
-vim.keymap.set("n", "<leader>ft", function()
-  ensure_unfixed_window()
-  Snacks.picker.colorschemes()
-end, { desc = "Select Colorscheme / Themes" })
 local _branch_preview_timer = nil
 
 local function open_git_branches_picker(opts)
