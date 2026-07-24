@@ -165,7 +165,7 @@ Acceptance criteria:
 
 - [ ] Add `autocmds.lua` for SQL and dbout lifecycle events.
 - [ ] Add `buffers.lua` for SQL/dbout buffer setup and buffer-local mappings.
-- [ ] Add `results.lua` for result paths, rename, display, and window lifecycle.
+- [x] Add `results.lua` for result paths, rename, display, and window lifecycle.
 - [ ] Add `jobs.lua` for background process tracking and cancellation.
 - [x] Move CSV, JSON, INSERT, and IN-clause generation into `export.lua`.
 - [x] Move EXPLAIN/ANALYZE behavior into `explain.lua`.

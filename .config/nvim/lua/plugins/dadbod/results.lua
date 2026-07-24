@@ -169,4 +169,104 @@ function M.show_result_in_window(result_path, subdir, sql_source_path)
   end
 end
 
+--- Rename and register a Dadbod output after DBExecutePost.
+--- @param args table
+function M.handle_execute_post(args)
+  local file_path = args.match:match("^(.*)/DBExecutePost$")
+  if not file_path then return end
+
+  local bufnr = vim.fn.bufnr(file_path)
+  if bufnr == -1 then return end
+
+  local filename = vim.fn.fnamemodify(file_path, ":t")
+  if filename:match("^Result_%d+_") then return end
+
+  local query_snippet = "query"
+  local db_input = vim.b[bufnr].db_input
+  if db_input and vim.fn.filereadable(db_input) == 1 then
+    local lines = vim.fn.readfile(db_input, "", 5)
+    for _, line in ipairs(lines) do
+      local trimmed = vim.trim(line)
+      if trimmed ~= "" and not vim.startswith(trimmed, "--") and not vim.startswith(trimmed, "/*") then
+        query_snippet = trimmed:gsub("%s+", " "):sub(1, 30)
+        break
+      end
+    end
+  end
+  query_snippet = query_snippet:gsub("[^%w%s_-]", ""):gsub("%s+", "_")
+
+  local dir = vim.fn.fnamemodify(file_path, ":h")
+  local ext = vim.fn.fnamemodify(file_path, ":e")
+  local sql_source_bufnr = state.sql_source_by_output[file_path]
+  state.sql_source_by_output[file_path] = nil
+  local sql_source_path = (sql_source_bufnr and sql_source_bufnr ~= -1)
+    and vim.api.nvim_buf_get_name(sql_source_bufnr)
+    or ""
+
+  local subdir = M.get_subdir_for_sql(sql_source_path, sql_source_bufnr) or (dir .. "/query")
+  vim.fn.mkdir(subdir, "p")
+
+  local files = vim.fn.glob(subdir .. "/Result_*.dbout", true, true)
+  local max_counter = 0
+  for _, file in ipairs(files) do
+    local counter = tonumber(vim.fn.fnamemodify(file, ":t"):match("^Result_(%d+)_"))
+    if counter and counter > max_counter then max_counter = counter end
+  end
+
+  local new_filename = string.format("Result_%d_%s.%s", max_counter + 1, query_snippet, ext)
+  local new_path = subdir .. "/" .. new_filename
+  local save_eventignore = vim.o.eventignore
+  vim.o.eventignore = "all"
+
+  local move_ok = os.rename(file_path, new_path)
+  if not move_ok then
+    local uv = vim.uv or vim.loop
+    local copy_ok, copy_err = uv.fs_copyfile(file_path, new_path)
+    if copy_ok then
+      uv.fs_unlink(file_path)
+    else
+      require("core.utils").notify("error_disk_rename", tostring(copy_err))
+    end
+  end
+
+  local existing_buf = vim.fn.bufnr(new_path)
+  if existing_buf ~= -1 and existing_buf ~= bufnr then
+    pcall(vim.cmd, "bwipeout! " .. existing_buf)
+  end
+  vim.api.nvim_buf_set_name(bufnr, new_path)
+  vim.o.eventignore = save_eventignore
+
+  vim.bo[bufnr].modified = false
+  vim.bo[bufnr].bufhidden = ""
+  vim.bo[bufnr].buflisted = false
+
+  if sql_source_path ~= "" then
+    vim.b[bufnr].sql_source_path = sql_source_path
+    state.last_result_by_sql[sql_source_path] = new_path
+  end
+  state.last_dbout_dir = subdir
+
+  local db = vim.b[bufnr].db or {}
+  if type(db) == "table" then
+    db.output = new_path
+    vim.b[bufnr].db = db
+  end
+
+  local db_info = vim.b[bufnr].db or {}
+  local runtime = type(db_info) == "table" and db_info.runtime
+  if runtime then
+    vim.b[bufnr].db_runtime = string.format("%.3fs", runtime)
+    pcall(function() require("lualine").refresh() end)
+  end
+
+  if state.query_handles[file_path] then
+    local handle = state.query_handles[file_path]
+    state.query_handles[file_path] = nil
+    handle.message = runtime and string.format("Done in %.3fs", runtime) or "Done"
+    vim.defer_fn(function()
+      pcall(function() handle:finish() end)
+    end, 1500)
+  end
+end
+
 return M
