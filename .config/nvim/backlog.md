@@ -185,10 +185,9 @@ Acceptance criteria:
 
 ## Refactor: Split Snacks Configuration by Domain
 
-- [ ] Convert `lua/plugins/snacks.lua` to `lua/plugins/snacks/init.lua`.
-- [x] Add focused modules for files, grep, Git, and keymaps.
-- [ ] Add focused module for buffers.
-- [ ] Keep `snacks.setup()` and package registration in the entry point.
+- [x] Convert `lua/plugins/snacks.lua` to `lua/plugins/snacks/init.lua`.
+- [x] Add focused modules for files, grep, Git, buffers, and keymaps.
+- [x] Keep `snacks.setup()` and package registration in the entry point.
 - [x] Keep picker state private to the module that owns the picker.
 
 Suggested structure:
