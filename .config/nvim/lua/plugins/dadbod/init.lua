@@ -420,65 +420,6 @@ function M.open_last_result()
   show_result_in_window(latest, subdir, sql_path)
 end
 
-local function setup_sql_buffer(args)
-  local bufnr = args and args.buf or vim.api.nvim_get_current_buf()
-  vim.bo[bufnr].omnifunc = ""
-  auto_bind_connection(bufnr)
-
-  -- Keymaps for DB operations (Buffer local)
-  local opts = { buffer = bufnr, silent = true }
-  vim.keymap.set("n", "<leader>rr", require("plugins.dadbod.query").run_sql_block, vim.tbl_extend("force", opts, { desc = "Run SQL Block" }))
-  vim.keymap.set("v", "<leader>rr", function()
-    -- Exit visual mode to save '< and '> marks
-    vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("<ESC>", true, false, true), "x", false)
-
-    -- Same guard as run_sql_block: block if profile was set but failed/connecting
-    local status = vim.b[bufnr].db_connection_status
-    if status == "connecting" then
-      require("core.utils").notify("db_connecting")
-      return
-    end
-    if status == "failed" then
-      require("core.utils").notify("db_connection_blocked")
-      return
-    end
-
-    local db_url = vim.b[bufnr].db
-    if not db_url or db_url == "" or (type(db_url) == "table" and not next(db_url)) then
-      require("core.utils").notify("db_no_connection")
-      return
-    end
-
-    local url_str = type(db_url) == "table" and (db_url.url or db_url[1] or "") or tostring(db_url)
-    local is_prod = url_str:match("prod") or url_str:match("production")
-    local function execute()
-      vim.cmd("vertical '<,'>DB")
-    end
-    if is_prod then
-      vim.ui.input({
-        prompt = "WARNING: Production DB! Confirm 'Run Visual Selection' by typing 'yes': ",
-      }, function(input)
-        if input and input:lower() == "yes" then execute() else require("core.utils").notify("db_operation_cancelled") end
-      end)
-    else
-      execute()
-    end
-  end, vim.tbl_extend("force", opts, { desc = "Run Selection (DB)" }))
-
-  vim.keymap.set({ "n", "v" }, "<leader>rc", require("plugins.dadbod.query").copy_block_as_csv, vim.tbl_extend("force", opts, { desc = "Copy Results as CSV" }))
-  vim.keymap.set({ "n", "v" }, "<leader>rj", require("plugins.dadbod.query").copy_block_as_json, vim.tbl_extend("force", opts, { desc = "Copy Results as JSON" }))
-  vim.keymap.set("n", "<leader>rp", function() require("plugins.dadbod.query").explain_query(false) end, vim.tbl_extend("force", opts, { desc = "Explain Performance (Clean)" }))
-  vim.keymap.set("n", "<leader>rv", function() require("plugins.dadbod.query").explain_query(true) end, vim.tbl_extend("force", opts, { desc = "Explain Performance (Verbose)" }))
-  vim.keymap.set("n", "<leader>ro", M.open_last_result, vim.tbl_extend("force", opts, { desc = "Open Last Result for this SQL file" }))
-  vim.keymap.set("n", "<leader>rt", M.show_table_detail, vim.tbl_extend("force", opts, { desc = "Show Table Detail (Hover)" }))
-  vim.keymap.set("n", "K", M.show_table_detail, vim.tbl_extend("force", opts, { desc = "Show Table Detail (Hover)" }))
-  vim.keymap.set("n", "<leader>rs", require("plugins.dadbod.db").switch_connection, vim.tbl_extend("force", opts, { desc = "Switch Database Environment" }))
-  vim.keymap.set("n", "<leader>rf", function() require("plugins.dadbod.picker").browse_tables({ view_only = false }) end, vim.tbl_extend("force", opts, { desc = "Find & Insert DB Table" }))
-  vim.keymap.set("n", "<leader>ri", require("plugins.dadbod.picker").inspect_tables, vim.tbl_extend("force", opts, { desc = "Inspect DB Schema & Tables (View Only)" }))
-  vim.keymap.set("n", "<leader>rh", require("plugins.dadbod.history").switch_result_history, vim.tbl_extend("force", opts, { desc = "Query Result History" }))
-  vim.keymap.set("n", "<leader>rx", require("plugins.dadbod.history").clear_all_results, vim.tbl_extend("force", opts, { desc = "Clear Query History" }))
-end
-
 vim.api.nvim_create_user_command("DbInspectTables", function()
   require("plugins.dadbod.picker").inspect_tables()
 end, { desc = "Inspect DB Schema & Tables (View Only)" })
@@ -487,7 +428,13 @@ end, { desc = "Inspect DB Schema & Tables (View Only)" })
 vim.api.nvim_create_autocmd("FileType", {
   pattern = "sql",
   group = group,
-  callback = setup_sql_buffer,
+  callback = function(args)
+    require("plugins.dadbod.buffers").setup_sql(args, {
+      auto_bind = auto_bind_connection,
+      open_last_result = M.open_last_result,
+      show_table_detail = M.show_table_detail,
+    })
+  end,
 })
 
 -- Auto-preview: when entering a SQL buffer, auto-show its latest result in the dbout window if available.
