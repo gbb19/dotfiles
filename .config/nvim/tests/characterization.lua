@@ -74,17 +74,16 @@ check(Snacks and Snacks.config.bigfile.enabled == true, "Snacks bigfile is not e
 check(Snacks and Snacks.config.picker.enabled == true, "Snacks picker is not enabled")
 check(Snacks and Snacks.config.input.enabled == true, "Snacks input is not enabled")
 
-local resume = require("snacks.picker.resume")
-check(type(resume.add) == "function", "Snacks resume.add is unavailable")
-check(type(resume._resume) == "function", "configured Snacks resume implementation is unavailable")
+local resume = require("plugins.snacks.resume")
+check(type(resume.capture) == "function", "configured Snacks resume capture is unavailable")
+check(type(resume.resume) == "function", "configured Snacks resume implementation is unavailable")
 
 local previous_files_state = resume.state.files
 local cached_items = {
   { file = "one.lua" },
   { file = "two.lua" },
 }
-resume.add({
-  opts = { source = "files", toggles = {}, live = false },
+resume.capture("files", {
   init_opts = { source = "files" },
   selected = function()
     return {}

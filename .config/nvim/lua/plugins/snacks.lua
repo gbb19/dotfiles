@@ -15,6 +15,7 @@ vim.api.nvim_create_autocmd("VimEnter", {
 -- Configure snacks.nvim
 local ok, snacks = pcall(require, "snacks")
 if not ok then return end
+local picker_resume = require("plugins.snacks.resume")
 
 snacks.setup({
   bigfile = { enabled = true },
@@ -118,47 +119,21 @@ local function ensure_unfixed_window()
   return vim.api.nvim_get_current_win()
 end
 
--- Global hook into Snacks.picker to ensure any picker launch switches to an unfixed window
-pcall(function()
-  local picker = require("snacks.picker")
-  if picker then
-    local orig_open = picker.open
-    if type(orig_open) == "function" then
-      picker.open = function(opts)
-        ensure_unfixed_window()
-        return orig_open(opts)
-      end
-    end
-    if picker.Picker and type(picker.Picker.new) == "function" then
-      local orig_new = picker.Picker.new
-      picker.Picker.new = function(opts)
-        local valid_win = ensure_unfixed_window()
-        local instance = orig_new(opts)
-        if instance and instance.main_win and vim.wo[instance.main_win].winfixbuf then
-          instance.main_win = valid_win
-        end
-        return instance
-      end
-    end
-  end
-end)
-
 -- Global search keymaps using Snacks picker
 vim.keymap.set("n", "<leader>ff", function()
   ensure_unfixed_window()
-  local resume_state = require("snacks.picker.resume").state["files"]
-  if vim.v.count == 0 and resume_state ~= nil then
-    Snacks.picker.resume({ source = "files" })
+  if vim.v.count == 0 and picker_resume.has("files") then
+    picker_resume.resume("files")
   else
     local cwd = vim.fn.fnamemodify(vim.fn.getcwd(), ":p:~"):gsub("/+$", "")
-    Snacks.picker.files({ title = "Files (" .. cwd .. ")" })
+    picker_resume.open("files", Snacks.picker.files, { title = "Files (" .. cwd .. ")" })
   end
 end, { desc = "Find Files (Resume; [count]=new search)" })
 
 vim.keymap.set("n", "<leader>fF", function()
   ensure_unfixed_window()
   local cwd = vim.fn.fnamemodify(vim.fn.getcwd(), ":p:~"):gsub("/+$", "")
-  Snacks.picker.files({ title = "Files (" .. cwd .. ")" })
+  picker_resume.open("files", Snacks.picker.files, { title = "Files (" .. cwd .. ")" })
 end, { desc = "Find Files (Fresh Search)" })
 
 vim.keymap.set("n", "<leader>ft", function()
@@ -262,7 +237,7 @@ local function open_grep(include, exclude, search)
   local args = build_grep_args(include, exclude)
   _grep_reset_pending = false
 
-  Snacks.picker.grep({
+  picker_resume.open("grep", Snacks.picker.grep, {
     args = #args > 0 and args or nil,
     search = search,
     win = {
@@ -293,11 +268,11 @@ end
 
 vim.keymap.set("n", "<leader>fg", function()
   ensure_unfixed_window()
-  local resume_state = require("snacks.picker.resume").state["grep"]
+  local has_resume_state = picker_resume.has("grep")
   local force_filter_prompts = _grep_reset_pending
 
-  if vim.v.count == 0 and resume_state ~= nil and not force_filter_prompts then
-    Snacks.picker.resume({ source = "grep" })
+  if vim.v.count == 0 and has_resume_state and not force_filter_prompts then
+    picker_resume.resume("grep")
     return
   end
 
@@ -306,8 +281,8 @@ vim.keymap.set("n", "<leader>fg", function()
     default = _grep_last_include or "",
   }, function(include)
     if include == nil then
-      if resume_state ~= nil and not force_filter_prompts then
-        Snacks.picker.resume({ source = "grep" })
+      if has_resume_state and not force_filter_prompts then
+        picker_resume.resume("grep")
       else
         open_grep(_grep_last_include or "", _grep_last_exclude or "", _grep_last_search)
       end
@@ -329,7 +304,7 @@ end, { desc = "Live Grep (Resume; [count]=edit filters)" })
 vim.keymap.set("n", "<leader>fG", function()
   ensure_unfixed_window()
   reset_grep_filters()
-  Snacks.picker.grep()
+  picker_resume.open("grep", Snacks.picker.grep)
 end, { desc = "Live Grep (Fresh Search)" })
 
 local function is_buffer_pinned(bufnr)
@@ -458,57 +433,3 @@ vim.keymap.set("n", "<leader>cD", function()
   ensure_unfixed_window()
   Snacks.picker.diagnostics()
 end, { desc = "Search Diagnostics (Workspace)" })
-
-
-
--- Monkey-patch snacks.nvim picker resume to cache items in memory and pre-set cursor position & target immediately
--- so resuming is 100% instant without re-scanning disk or cursor top-to-bottom jump animation.
-local resume_ok, picker_resume = pcall(require, "snacks.picker.resume")
-if resume_ok and picker_resume then
-  local original_add = picker_resume.add
-  picker_resume.add = function(picker)
-    original_add(picker)
-    local source = picker.opts.source or "custom"
-    if picker_resume.state[source] then
-      local items = (picker.finder and picker.finder.items) or (picker.list and picker.list.items)
-      if items and #items > 0 then
-        picker_resume.state[source].items = items
-      end
-    end
-  end
-
-  picker_resume._resume = function(state)
-    state.opts.pattern = state.filter.pattern
-    state.opts.search = state.filter.search
-    if state.items and #state.items > 0 then
-      state.opts.finder = function()
-        return state.items
-      end
-    end
-    local ret = Snacks.picker.pick(state.opts)
-    if state.cursor and ret and ret.list then
-      ret.list.target = { cursor = state.cursor, top = state.topline or 1 }
-      ret.list.cursor = state.cursor
-      if state.topline then
-        ret.list.top = state.topline
-      end
-      pcall(function() ret.list:view(state.cursor, state.topline) end)
-    end
-    ret.list:set_selected(state.selected)
-    ret.list:update()
-    ret.input:update()
-    ret.matcher.task:on(
-      "done",
-      vim.schedule_wrap(function()
-        if ret.closed then
-          return
-        end
-        if state.cursor then
-          ret.list:view(state.cursor, state.topline)
-          ret.list.target = nil
-        end
-      end)
-    )
-    return ret
-  end
-end

@@ -57,13 +57,13 @@ Every refactor phase must satisfy all of these conditions:
 
 ## Fix: Snacks Private API Patches
 
-- [ ] Inspect the current public Snacks picker and resume APIs.
-- [ ] Remove overrides of `picker.open` and `picker.Picker.new`.
-- [ ] Remove overrides of `picker_resume.add` and private `picker_resume._resume`.
-- [ ] Keep `ensure_unfixed_window()` only at picker entry points that need it.
-- [ ] Preserve file, grep, buffer, diagnostic, and resume workflows using public APIs.
-- [ ] Implement this only after capturing current picker and resume behavior.
-- [ ] Commit this separately from the Snacks module split.
+- [x] Inspect the current public Snacks picker and resume APIs.
+- [x] Remove overrides of `picker.open` and `picker.Picker.new`.
+- [x] Remove overrides of `picker_resume.add` and private `picker_resume._resume`.
+- [x] Keep `ensure_unfixed_window()` only at picker entry points that need it.
+- [x] Preserve file, grep, buffer, diagnostic, and resume workflows using public APIs.
+- [x] Implement this only after capturing current picker and resume behavior.
+- [x] Commit this separately from the Snacks module split.
 
 Acceptance criteria:
 
