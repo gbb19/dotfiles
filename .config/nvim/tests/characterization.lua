@@ -27,8 +27,16 @@ end
 
 local expected_keymaps = {
   { "n", " ff", "Find Files (Resume; [count]=new search)" },
+  { "n", " fF", "Find Files (Fresh Search)" },
   { "n", " fg", "Live Grep (Resume; [count]=edit filters)" },
+  { "n", " fG", "Live Grep (Fresh Search)" },
   { "n", " fb", "Find Buffers (Pinned First + MRU)" },
+  { "n", " ft", "Select Colorscheme / Themes" },
+  { "n", " fr", "Recent Files" },
+  { "n", " fh", "Help Tags" },
+  { "n", " gc", "Git Checkout Branch (Local First + MRU)" },
+  { "n", " cd", "Search Diagnostics (Current File)" },
+  { "n", " cD", "Search Diagnostics (Workspace)" },
   { "n", " gD", "Open Git Diffview" },
   { "n", " yp", "Copy Relative File Path" },
   { "n", " br", "Rename Buffer/File" },
