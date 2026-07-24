@@ -42,6 +42,7 @@
               };
 
               # GPG Agent config for macOS (caching password for 4 hours / 14400 seconds)
+              # Using pinentry-curses so passphrase can be entered in terminal (works over SSH/remote)
               home.file.".gnupg/gpg-agent.conf".text = ''
                 default-cache-ttl 14400
                 max-cache-ttl 14400
@@ -52,6 +53,9 @@
 
               home.packages = with pkgs; [
                 git
+                lazygit
+                git-town
+                gh
                 neovim
                 gcc
                 gnumake
@@ -64,14 +68,14 @@
                 fzf
                 rsync
                 curl
-                tree
                 gnupg
                 tree
                 fd
                 bat
-                delta
+                fastfetch
                 tailscale
                 htop
+                delta
                 colima
                 docker
                 docker-compose
