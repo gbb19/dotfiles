@@ -16,3 +16,7 @@ nvim --headless -n -i NONE \
 nvim --headless -n -i NONE \
   "+luafile tests/dadbod_dependencies.lua" \
   +qa
+
+nvim --headless -n -i NONE \
+  "+luafile tests/dadbod_sql.lua" \
+  +qa
