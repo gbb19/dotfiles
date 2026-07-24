@@ -341,8 +341,9 @@ end
 vim.keymap.set("n", "<leader>fg", function()
   ensure_unfixed_window()
   local resume_state = require("snacks.picker.resume").state["grep"]
+  local force_filter_prompts = _grep_reset_pending
 
-  if vim.v.count == 0 and resume_state ~= nil then
+  if vim.v.count == 0 and resume_state ~= nil and not force_filter_prompts then
     Snacks.picker.resume({ source = "grep" })
     return
   end
@@ -352,7 +353,7 @@ vim.keymap.set("n", "<leader>fg", function()
     default = _grep_last_include or "",
   }, function(include)
     if include == nil then
-      if resume_state ~= nil then
+      if resume_state ~= nil and not force_filter_prompts then
         Snacks.picker.resume({ source = "grep" })
       else
         open_grep(_grep_last_include or "", _grep_last_exclude or "", _grep_last_search)
