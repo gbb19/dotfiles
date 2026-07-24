@@ -2,206 +2,63 @@
 local languages = require("languages")
 local utils = require("core.utils")
 
--- Add lspconfig, blink.cmp, and mason using built-in vim.pack
--- Prepend Mason bin to PATH so LSP executables installed via Mason are discoverable
 vim.env.PATH = vim.fn.stdpath("data") .. "/mason/bin:" .. vim.env.PATH
 
 vim.pack.add({
   "https://github.com/neovim/nvim-lspconfig",
-  -- Pin blink.cmp to stable v1.x series to use prebuilt binaries
   { src = "https://github.com/Saghen/blink.cmp", version = vim.version.range("1") },
-  -- Declarative package manager for LSPs
   "https://github.com/williamboman/mason.nvim",
   "https://github.com/williamboman/mason-lspconfig.nvim",
-  -- Manage workspace libraries for Neovim config files dynamically
   "https://github.com/folke/lazydev.nvim",
 })
 
--- If the current file is SQL, pre-load plugins.dadbod to ensure the dadbod completion source
--- is in the package path before blink.cmp initializes its providers.
-if vim.bo.filetype == "sql" then
-  pcall(require, "plugins.dadbod")
-end
+if vim.bo.filetype == "sql" then pcall(require, "plugins.dadbod") end
 
--- Safely configure plugins
 local lazydev_ok, lazydev = pcall(require, "lazydev")
 if lazydev_ok then
   lazydev.setup({
     library = {
-      -- Load luvit types when the `vim.uv` word is found
       { path = "${3rd}/luv/library", words = { "vim%.uv" } },
     },
   })
 else
-  require("core.utils").notify("config_completion_failed", "lazydev: " .. tostring(lazydev), { title = "Neovim config" })
+  utils.notify("config_completion_failed", "lazydev: " .. tostring(lazydev), { title = "Neovim config" })
 end
+
 local blink_ok, blink = pcall(require, "blink.cmp")
-if not blink_ok then
-  require("core.utils").notify("config_completion_failed", tostring(blink), { title = "Neovim config" })
-end
-local mason = require("plugins.lsp.mason")
-local diagnostics = require("plugins.lsp.diagnostics")
-local completion = require("plugins.lsp.completion")
-local attach = require("plugins.lsp.attach")
-
--- 1. Setup Autocomplete engine (blink.cmp)
 if blink_ok then
-  blink.setup({
-    keymap = {
-      preset = "default",
-      ["<Tab>"] = { "accept", "fallback" }, -- Map Tab to accept completion when menu is open
-    },
-    sources = {
-      default = { "lazydev", "lsp", "path", "snippets", "buffer" },
-      per_filetype = {
-        sql = { "sql_columns", "sql_tables", "sql_keywords", "snippets", "buffer" },
-      },
-      providers = {
-        lazydev = {
-          name = "LazyDev",
-          module = "lazydev.integrations.blink",
-          score_offset = 100,
-        },
-        -- Custom SQL column source: resolves schema-qualified aliases and fetches
-        -- column names directly from PostgreSQL, bypassing vim-dadbod-completion limitations.
-        sql_columns = {
-          name = "SQL Columns",
-          module = "plugins.dadbod.columns",
-          score_offset = 200, -- highest priority in SQL buffers
-          opts = {},
-        },
-        sql_tables = {
-          name = "SQL Tables",
-          module = "plugins.dadbod.tables",
-          score_offset = 150,
-          opts = {},
-        },
-        sql_keywords = {
-          name = "SQL Keywords",
-          module = "plugins.dadbod.keywords",
-          score_offset = 100,
-          opts = {},
-        },
-        buffer = {
-          opts = {
-            get_bufnrs = function()
-              -- Exclude files in node_modules from being indexed by the buffer completion source
-              return vim.tbl_filter(function(bufnr)
-                local name = vim.api.nvim_buf_get_name(bufnr)
-                return not name:match("node_modules")
-              end, vim.api.nvim_list_bufs())
-            end,
-          },
-        },
-      },
-    },
-    completion = {
-      list = {
-        selection = {
-          preselect = true,
-          auto_insert = false, -- Don't insert text into buffer while navigating with C-n/C-p
-        },
-      },
-      menu = {
-        border = "rounded",
-        auto_show = false, -- Only show menu when manually triggered (e.g. C-space)
-        draw = {
-          columns = {
-            { "kind_icon", "label", gap = 1 },
-            { "description" },
-          },
-          components = {
-            label = {
-              width = { fill = true },
-            },
-            description = {
-              ellipsis = true,
-              text = function(ctx)
-                return ctx.item.detail or ""
-              end,
-              highlight = "BlinkCmpLabelDetail",
-            },
-          },
-        },
-      },
-      documentation = { window = { border = "rounded" } },
-    },
-    signature = { window = { border = "rounded" } },
-    fuzzy = {
-      sorts = {
-        -- Custom sort: dynamically prioritize SQL sources based on syntax context
-        function(a, b)
-          local sql_sources = { sql_columns = true, sql_tables = true, sql_keywords = true }
-          if sql_sources[a.source_id] and sql_sources[b.source_id] then
-            local ctx_type = completion.get_sql_context_cached()
-            local priorities
-            if ctx_type == "column" then
-              priorities = { sql_columns = 3, sql_keywords = 2, sql_tables = 1 }
-            elseif ctx_type == "table" then
-              priorities = { sql_tables = 3, sql_keywords = 2, sql_columns = 1 }
-            else -- "keyword"
-              priorities = { sql_keywords = 3, sql_columns = 2, sql_tables = 1 }
-            end
-
-            local a_prio = priorities[a.source_id] or 0
-            local b_prio = priorities[b.source_id] or 0
-            if a_prio ~= b_prio then
-              return a_prio > b_prio
-            end
-
-            local a_sort = a.sortText or a.label
-            local b_sort = b.sortText or b.label
-            if a_sort ~= b_sort then
-              return a_sort < b_sort
-            end
-          end
-        end,
-        "exact",
-        "score",
-        "sort_text",
-        "kind",
-        "label",
-      },
-    },
-  })
+  require("plugins.lsp.completion").setup(blink)
+else
+  utils.notify("config_completion_failed", tostring(blink), { title = "Neovim config" })
 end
 
--- 2. Setup LSP installer (mason & mason-lspconfig)
-mason.setup(utils)
+require("plugins.lsp.mason").setup(utils)
 
--- 3. Configure LSP servers via native Neovim 0.12+ APIs
-local capabilities = blink_ok and blink.get_lsp_capabilities() or vim.lsp.protocol.make_client_capabilities()
+local capabilities = blink_ok
+    and blink.get_lsp_capabilities()
+  or vim.lsp.protocol.make_client_capabilities()
 
 local function get_executable(resolved)
   local cmd = resolved and resolved.cmd
-  if type(cmd) == "table" then
-    return cmd[1]
-  elseif type(cmd) == "string" then
-    return cmd
-  end
-  return nil
+  if type(cmd) == "table" then return cmd[1] end
+  if type(cmd) == "string" then return cmd end
 end
 
 for _, server in ipairs(languages.lsp_servers) do
-  -- Load custom overrides from the plugins/lsp/servers/ directory
   local ok, config = pcall(require, "plugins.lsp.servers." .. server)
   local server_opts = ok and config or {}
-
-  -- Merge capabilities
-  server_opts.capabilities = vim.tbl_deep_extend("force", capabilities, server_opts.capabilities or {})
-
+  server_opts.capabilities = vim.tbl_deep_extend(
+    "force",
+    capabilities,
+    server_opts.capabilities or {}
+  )
   vim.lsp.config(server, server_opts)
 
-  -- Only enable the server if its executable is available to prevent annoying "Spawning language server failed" errors
-  local resolved = vim.lsp.config[server]
-  local executable = get_executable(resolved)
-
+  local executable = get_executable(vim.lsp.config[server])
   if executable == nil or vim.fn.executable(executable) == 1 then
     vim.lsp.enable(server)
   end
 end
 
--- LSP Keymaps setup using LspAttach autocmd (SOLID - Loose Coupling)
-attach.setup()
-
-diagnostics.setup(utils)
+require("plugins.lsp.attach").setup()
+require("plugins.lsp.diagnostics").setup(utils)

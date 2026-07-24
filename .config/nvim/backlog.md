@@ -211,7 +211,7 @@ Acceptance criteria:
 ## Refactor: Split LSP Configuration by Responsibility
 
 - [x] Convert `lua/plugins/lsp.lua` to `lua/plugins/lsp/init.lua`.
-- [ ] Move blink.cmp configuration and SQL sorting into `completion.lua`.
+- [x] Move blink.cmp configuration and SQL sorting into `completion.lua`.
 - [x] Move Mason setup and install notifications into `mason.lua`.
 - [x] Move `LspAttach`, diagnostics, and LSP keymaps into `attach.lua`.
 - [x] Keep server-specific overrides under `lsp/servers/`.

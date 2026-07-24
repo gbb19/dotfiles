@@ -42,4 +42,108 @@ function M.get_sql_context_cached()
   return cached_context
 end
 
+function M.setup(blink)
+  blink.setup({
+    keymap = {
+      preset = "default",
+      ["<Tab>"] = { "accept", "fallback" },
+    },
+    sources = {
+      default = { "lazydev", "lsp", "path", "snippets", "buffer" },
+      per_filetype = {
+        sql = { "sql_columns", "sql_tables", "sql_keywords", "snippets", "buffer" },
+      },
+      providers = {
+        lazydev = {
+          name = "LazyDev",
+          module = "lazydev.integrations.blink",
+          score_offset = 100,
+        },
+        sql_columns = {
+          name = "SQL Columns",
+          module = "plugins.dadbod.columns",
+          score_offset = 200,
+          opts = {},
+        },
+        sql_tables = {
+          name = "SQL Tables",
+          module = "plugins.dadbod.tables",
+          score_offset = 150,
+          opts = {},
+        },
+        sql_keywords = {
+          name = "SQL Keywords",
+          module = "plugins.dadbod.keywords",
+          score_offset = 100,
+          opts = {},
+        },
+        buffer = {
+          opts = {
+            get_bufnrs = function()
+              return vim.tbl_filter(function(bufnr)
+                return not vim.api.nvim_buf_get_name(bufnr):match("node_modules")
+              end, vim.api.nvim_list_bufs())
+            end,
+          },
+        },
+      },
+    },
+    completion = {
+      list = {
+        selection = {
+          preselect = true,
+          auto_insert = false,
+        },
+      },
+      menu = {
+        border = "rounded",
+        auto_show = false,
+        draw = {
+          columns = {
+            { "kind_icon", "label", gap = 1 },
+            { "description" },
+          },
+          components = {
+            label = { width = { fill = true } },
+            description = {
+              ellipsis = true,
+              text = function(ctx) return ctx.item.detail or "" end,
+              highlight = "BlinkCmpLabelDetail",
+            },
+          },
+        },
+      },
+      documentation = { window = { border = "rounded" } },
+    },
+    signature = { window = { border = "rounded" } },
+    fuzzy = {
+      sorts = {
+        function(a, b)
+          local sql_sources = { sql_columns = true, sql_tables = true, sql_keywords = true }
+          if not sql_sources[a.source_id] or not sql_sources[b.source_id] then return end
+
+          local context = M.get_sql_context_cached()
+          local priorities = context == "column"
+              and { sql_columns = 3, sql_keywords = 2, sql_tables = 1 }
+            or context == "table"
+              and { sql_tables = 3, sql_keywords = 2, sql_columns = 1 }
+            or { sql_keywords = 3, sql_columns = 2, sql_tables = 1 }
+          local a_priority = priorities[a.source_id] or 0
+          local b_priority = priorities[b.source_id] or 0
+          if a_priority ~= b_priority then return a_priority > b_priority end
+
+          local a_sort = a.sortText or a.label
+          local b_sort = b.sortText or b.label
+          if a_sort ~= b_sort then return a_sort < b_sort end
+        end,
+        "exact",
+        "score",
+        "sort_text",
+        "kind",
+        "label",
+      },
+    },
+  })
+end
+
 return M
