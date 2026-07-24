@@ -169,10 +169,10 @@ Acceptance criteria:
 - [x] Add `jobs.lua` for background process tracking and cancellation.
 - [x] Move CSV, JSON, INSERT, and IN-clause generation into `export.lua`.
 - [x] Move EXPLAIN/ANALYZE behavior into `explain.lua`.
-- [ ] Keep `query.lua` focused on query execution.
-- [ ] Keep `cell.lua` focused on cell inspection and text objects.
-- [ ] Move completion modules under `dadbod/completion/` if it improves dependency direction.
-- [ ] Reduce `dadbod/init.lua` to package setup and orchestration.
+- [x] Keep `query.lua` focused on query execution.
+- [x] Keep `cell.lua` focused on cell inspection and text objects.
+- [x] Keep completion modules flat because a subdirectory would not improve dependency direction.
+- [x] Reduce `dadbod/init.lua` to package setup and orchestration.
 
 Acceptance criteria:
 
