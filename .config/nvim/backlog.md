@@ -252,9 +252,9 @@ Acceptance criteria:
 
 ## Refactor: Clean Core Boundaries
 
-- [ ] Split pack commands from `core/commands.lua`.
-- [ ] Split environment loading from `core/commands.lua`.
-- [ ] Move general autocommands into a dedicated core module.
+- [x] Split pack commands from `core/commands.lua`.
+- [x] Split environment loading from `core/commands.lua`.
+- [x] Move general autocommands into a dedicated core module.
 - [ ] Split notification messages from `core/utils.lua`.
 - [ ] Move generic file operations into `core/files.lua`.
 - [ ] Remove Dadbod-specific behavior from generic core modules.

@@ -1,5 +1,4 @@
--- lua/core/commands.lua
--- Global user commands for config maintenance
+-- Package and tooling maintenance commands.
 
 vim.api.nvim_create_user_command("PackUpdate", function()
   vim.pack.update()
@@ -236,68 +235,4 @@ end, {
     return langs
   end,
   desc = "Install configured LSP and DAP servers (optional: specify one or more languages)"
-})
-
--- Load .env file variables into vim.env (e.g. :LoadEnv .env.local)
-vim.api.nvim_create_user_command("LoadEnv", function(opts)
-  local utils = require("core.utils")
-  local filename = (opts.args ~= "") and opts.args or ".env"
-
-  local file = io.open(filename, "r")
-  if not file then
-    utils.notify("load_env_not_found", filename)
-    return
-  end
-
-  for line in file:lines() do
-    -- Skip comment lines and lines without '='
-    if not line:match("^%s*#") and line:match("=") then
-      local key, val = line:match("^%s*([^=%s]+)%s*=%s*(.-)%s*$")
-      if key and val then
-        -- Check if value is quoted
-        local quote = val:match("^([\"'])")
-        if quote then
-          -- Extract up to the matching closing quote
-          val = val:match("^" .. quote .. "(.-)" .. quote) or val
-        else
-          -- Strip trailing comments if unquoted
-          val = val:match("^([^#]-)%s*$") or val
-        end
-        vim.env[key] = val
-      end
-    end
-  end
-  file:close()
-  utils.notify("load_env_success", filename)
-end, {
-  nargs = "?",      -- accepts 0 or 1 argument
-  complete = "file", -- Tab-completion for filenames
-  desc = "Load environment variables from a .env file into vim.env",
-})
-
--- Highlight on yank (flash effect when copying text)
-vim.api.nvim_create_autocmd("TextYankPost", {
-  group = vim.api.nvim_create_augroup("HighlightYank", { clear = true }),
-  callback = function()
-    vim.highlight.on_yank({
-      higroup = "IncSearch",
-      timeout = 150,
-    })
-  end,
-})
-
--- Automatically check and reload files changed on disk externally + update Git branch & statusline
-vim.api.nvim_create_autocmd({ "FocusGained", "BufEnter", "CursorHold", "TermClose" }, {
-  group = vim.api.nvim_create_augroup("AutoReloadFiles", { clear = true }),
-  callback = function()
-    if vim.o.buftype == "" then
-      vim.cmd("checktime")
-    end
-    if package.loaded["gitsigns"] then
-      pcall(function() require("gitsigns").refresh() end)
-    end
-    if package.loaded["lualine"] then
-      pcall(function() require("lualine").refresh() end)
-    end
-  end,
 })

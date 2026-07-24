@@ -5,6 +5,7 @@ _G.startup_start_time = vim.uv.hrtime()
 require("core.options")
 require("core.keymaps")
 require("core.commands")
+require("core.autocmds")
 require("core.ui")
 require("core.layout").setup()
 
