@@ -87,7 +87,7 @@ Acceptance criteria:
 
 Potential performance work, tracked separately as a `fix:` or `perf:` commit:
 
-- [ ] Evaluate asynchronous Git commands after the structural refactor is verified.
+- [x] Evaluate asynchronous Git commands after the structural refactor is verified.
 
 ## Feature: Git Worktree Workflow
 
