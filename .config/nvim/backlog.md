@@ -168,7 +168,7 @@ Acceptance criteria:
 - [ ] Add `results.lua` for result paths, rename, display, and window lifecycle.
 - [ ] Add `jobs.lua` for background process tracking and cancellation.
 - [ ] Move CSV, JSON, INSERT, and IN-clause generation into `export.lua`.
-- [ ] Move EXPLAIN/ANALYZE behavior into `explain.lua`.
+- [x] Move EXPLAIN/ANALYZE behavior into `explain.lua`.
 - [ ] Keep `query.lua` focused on query execution.
 - [ ] Keep `cell.lua` focused on cell inspection and text objects.
 - [ ] Move completion modules under `dadbod/completion/` if it improves dependency direction.
