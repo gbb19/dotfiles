@@ -47,6 +47,39 @@ vim.b[dbout_buf].original_lines = {
 }
 vim.api.nvim_win_set_cursor(0, { 3, 0 })
 
+local expected_dbout_maps = {
+  ["gz"] = "Inspect full cell value",
+  ["K"] = "Inspect full cell value (Hover)",
+  ["gW"] = "Toggle fixed column width",
+  ["<Tab>"] = "Next Column",
+  ["<S-Tab>"] = "Previous Column",
+  ["gh"] = "Jump to Header",
+  ["yic"] = "Yank full inner cell",
+  ["yac"] = "Yank full around cell",
+  ["yin"] = "Yank Column as SQL IN Condition",
+  [" yI"] = nil,
+  [" yi"] = "Yank Column as SQL IN Condition",
+  ["yis"] = "Yank Rows as SQL INSERT Statement",
+  [" ys"] = "Yank Rows as SQL INSERT Statement",
+  [" yc"] = "Yank Rows as CSV",
+  [" rc"] = "Yank Rows as CSV",
+  [" rq"] = "Delete Result Buffer & File",
+  ["[b"] = "Previous Result Buffer",
+  ["]b"] = "Next Result Buffer",
+  [" rh"] = "Query Result History",
+  [" rx"] = "Clear Query History",
+}
+
+local dbout_maps = {}
+for _, map in ipairs(vim.api.nvim_buf_get_keymap(dbout_buf, "n")) do
+  dbout_maps[map.lhs] = map.desc
+end
+for lhs, description in pairs(expected_dbout_maps) do
+  if description then
+    check(dbout_maps[lhs] == description, ("dbout buffer keymap changed: %s"):format(lhs))
+  end
+end
+
 cell.yank_in_clause()
 check(vim.fn.getreg('"') == "id IN (1)", "SQL IN-clause generation changed")
 
